@@ -7,7 +7,7 @@
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include "../helpers/postfix.hpp"
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 #include <utility>
 
@@ -28,8 +28,10 @@ namespace incomplete_test
     // Declare some instances
     
 	typedef sherwood_map<value, value, hash, equals,
-        allocator<std::pair<value const, value> > > map;
-    typedef boost::unordered_multimap<value, value, hash, equals,
+		allocator<std::pair<value const, value> > > map;
+	typedef sherwood_map<value, value, hash, equals,
+		allocator<std::pair<value const, value> > > fat_map;
+	typedef boost::unordered_multimap<value, value, hash, equals,
         allocator<std::pair<value const, value> > > multimap;
     typedef boost::unordered_set<value, hash, equals,
         allocator<value> > set;
@@ -71,11 +73,15 @@ namespace incomplete_test
     // Incomplete hash, equals and allocator aren't here supported at the
     // moment.
     
-    struct struct1 {
+	struct struct1 {
 		sherwood_map<struct1, struct1, hash, equals,
-            allocator<std::pair<struct1 const, struct1> > > x;
-    };
-    struct struct2 {
+			allocator<std::pair<struct1 const, struct1> > > x;
+	};
+	struct fstruct1 {
+		fat_sherwood_map<fstruct1, fstruct1, hash, equals,
+			allocator<std::pair<fstruct1 const, fstruct1> > > x;
+	};
+	struct struct2 {
         boost::unordered_multimap<struct2, struct2, hash, equals,
             allocator<std::pair<struct2 const, struct2> > > x;
     };
@@ -94,13 +100,15 @@ namespace incomplete_test
 
     // Create some instances.
     
-    incomplete_test::map m1;
-    incomplete_test::multimap m2;
+	incomplete_test::map m1;
+	incomplete_test::fat_map fm1;
+	incomplete_test::multimap m2;
     incomplete_test::set s1;
     incomplete_test::multiset s2;
 
-    incomplete_test::struct1 c1;
-    incomplete_test::struct2 c2;
+	incomplete_test::struct1 c1;
+	incomplete_test::fstruct1 fc1;
+	incomplete_test::struct2 c2;
     incomplete_test::struct3 c3;
     incomplete_test::struct4 c4;
 
@@ -110,13 +118,15 @@ namespace incomplete_test
     std::size_t hash_value(value const&);
     bool operator==(value const&, value const&);
 
-    std::size_t hash_value(struct1 const&);
-    std::size_t hash_value(struct2 const&);
+	std::size_t hash_value(struct1 const&);
+	std::size_t hash_value(fstruct1 const&);
+	std::size_t hash_value(struct2 const&);
     std::size_t hash_value(struct3 const&);
     std::size_t hash_value(struct4 const&);
     
-    bool operator==(struct1 const&, struct1 const&);
-    bool operator==(struct2 const&, struct2 const&);
+	bool operator==(struct1 const&, struct1 const&);
+	bool operator==(fstruct1 const&, fstruct1 const&);
+	bool operator==(struct2 const&, struct2 const&);
     bool operator==(struct3 const&, struct3 const&);
     bool operator==(struct4 const&, struct4 const&);
     
@@ -126,11 +136,13 @@ namespace incomplete_test
     {
         incomplete_test::value x;
         m1[x] = x;
+		fm1[x] = x;
         m2.insert(std::make_pair(x, x));
         s1.insert(x);
         s2.insert(x);
 
         c1.x.insert(std::make_pair(c1, c1));
+		fc1.x.insert(std::make_pair(fc1, fc1));
         c2.x.insert(std::make_pair(c2, c2));
         c3.x.insert(c3);
         c4.x.insert(c4);
@@ -141,13 +153,15 @@ namespace incomplete_test
     std::size_t hash_value(value const&) { return 0; }
     bool operator==(value const&, value const&) { return true; }
 
-    std::size_t hash_value(struct1 const&) { return 0; }
-    std::size_t hash_value(struct2 const&) { return 0; }
+	std::size_t hash_value(struct1 const&) { return 0; }
+	std::size_t hash_value(fstruct1 const&) { return 0; }
+	std::size_t hash_value(struct2 const&) { return 0; }
     std::size_t hash_value(struct3 const&) { return 0; }
     std::size_t hash_value(struct4 const&) { return 0; }
     
-    bool operator==(struct1 const&, struct1 const&) { return true; }
-    bool operator==(struct2 const&, struct2 const&) { return true; }
+	bool operator==(struct1 const&, struct1 const&) { return true; }
+	bool operator==(fstruct1 const&, fstruct1 const&) { return true; }
+	bool operator==(struct2 const&, struct2 const&) { return true; }
     bool operator==(struct3 const&, struct3 const&) { return true; }
     bool operator==(struct4 const&, struct4 const&) { return true; }
 }

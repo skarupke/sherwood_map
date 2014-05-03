@@ -11,7 +11,7 @@
 #include "../helpers/test.hpp"
 #include <boost/limits.hpp>
 #include "../helpers/random_values.hpp"
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 #if defined(BOOST_MSVC)
 #pragma warning(push)
@@ -75,17 +75,18 @@ void load_factor_insert_tests(X* ptr, test::random_generator generator)
 //boost::unordered_set<int>* int_set_ptr;
 //boost::unordered_multiset<int>* int_multiset_ptr;
 sherwood_map<int, int>* int_map_ptr;
+fat_sherwood_map<int, int>* int_fat_map_ptr;
 //boost::unordered_multimap<int, int>* int_multimap_ptr;
 
 using test::default_generator;
 using test::generate_collisions;
 
 UNORDERED_TEST(set_load_factor_tests,
-	(/*(int_set_ptr)(int_multiset_ptr)*/(int_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(int_multiset_ptr)*/(int_map_ptr)(int_fat_map_ptr)/*(int_multimap_ptr)*/)
 )
 
 UNORDERED_TEST(load_factor_insert_tests,
-	(/*(int_set_ptr)(int_multiset_ptr)*/(int_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(int_multiset_ptr)*/(int_map_ptr)(int_fat_map_ptr)/*(int_multimap_ptr)*/)
     ((default_generator)(generate_collisions))
 )
 

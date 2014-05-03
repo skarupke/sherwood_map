@@ -60,7 +60,7 @@
         unordered_test_guard.dismiss())                                     \
 
 #define UNORDERED_EPOINT(name)                                              \
-    if(::test::exceptions_enabled) {                                        \
+	if(::test::exceptions_enabled()) {                                        \
         UNORDERED_EPOINT_IMPL(name);                                        \
     }                                                                       \
 
@@ -73,8 +73,16 @@
         ENABLE_EXCEPTIONS_, __LINE__)(false)                                \
 
 namespace test {
-    static char const* scope = "";
-	static bool exceptions_enabled = false;
+	inline char const *& scope()
+	{
+		static char const * result = "";
+		return result;
+	}
+	inline bool & exceptions_enabled()
+	{
+		static bool result = false;
+		return result;
+	}
 
     class scope_guard {
         scope_guard& operator=(scope_guard const&);
@@ -85,15 +93,15 @@ namespace test {
         bool dismissed_;
     public:
         scope_guard(char const* name)
-            : old_scope_(scope),
+			: old_scope_(scope()),
             scope_(name),
             dismissed_(false)
         {
-            scope = scope_;
+			scope() = scope_;
         }
 
         ~scope_guard() {
-            if(dismissed_) scope = old_scope_;
+			if(dismissed_) scope() = old_scope_;
         }
 
         void dismiss() {
@@ -113,14 +121,14 @@ namespace test {
         bool old_value_;
     public:
         exceptions_enable(bool enable)
-            : old_value_(exceptions_enabled)
+			: old_value_(exceptions_enabled())
         {
-            exceptions_enabled = enable;
+			exceptions_enabled() = enable;
         }
 
         ~exceptions_enable()
         {
-            exceptions_enabled = old_value_;
+			exceptions_enabled() = old_value_;
         }
     };
 
@@ -174,7 +182,7 @@ namespace test {
         test_runner(Test const& t) : test_(t) {}
         void operator()() const {
             DISABLE_EXCEPTIONS;
-            test::scope = "";
+			test::scope() = "";
             BOOST_DEDUCED_TYPENAME Test::data_type x(test_.init());
             BOOST_DEDUCED_TYPENAME Test::strong_type strong;
             strong.store(x);
@@ -200,8 +208,16 @@ namespace test {
     // Quick exception testing based on lightweight test
 
     namespace lightweight {
-        static int iteration;
-        static int count;
+		inline int & iteration()
+		{
+			static int result;
+			return result;
+		}
+		inline int & count()
+		{
+			static int result;
+			return result;
+		}
 
         struct test_exception {
             char const* name;
@@ -212,8 +228,8 @@ namespace test {
         };
 
 		inline void epoint(char const* name) {
-            ++count;
-            if(count == iteration) {
+			++count();
+			if(count() == iteration()) {
                 throw test_exception(name);
             }
         }
@@ -222,11 +238,11 @@ namespace test {
         void exception_safety(Test const& f, char const* /*name*/) {
             test_runner<Test> runner(f);
 
-            iteration = 0;
+			iteration() = 0;
             bool success = false;
             do {
-                ++iteration;
-                count = 0;
+				++iteration();
+				count() = 0;
 
                 try {
                     runner();

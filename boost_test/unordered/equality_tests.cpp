@@ -12,7 +12,7 @@
 #include <list>
 #include "../helpers/test.hpp"
 
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 namespace equality_tests
 {
@@ -51,13 +51,20 @@ namespace equality_tests
     }
 
 #define UNORDERED_EQUALITY_MAP_TEST(seq1, op, seq2)                         \
-    {                                                                       \
+	{                                                                       \
 		sherwood_map<int, int, mod_compare, mod_compare>            \
-            map1, map2;                                                     \
-        BOOST_PP_SEQ_FOR_EACH(UNORDERED_MAP_INSERT, map1, seq1)             \
-        BOOST_PP_SEQ_FOR_EACH(UNORDERED_MAP_INSERT, map2, seq2)             \
-        BOOST_TEST(map1 op map2);                                           \
-    }
+			map1, map2;                                                     \
+		BOOST_PP_SEQ_FOR_EACH(UNORDERED_MAP_INSERT, map1, seq1)             \
+		BOOST_PP_SEQ_FOR_EACH(UNORDERED_MAP_INSERT, map2, seq2)             \
+		BOOST_TEST(map1 op map2);                                           \
+	}\
+{                                                                      \
+	fat_sherwood_map<int, int, mod_compare, mod_compare>            \
+		map1, map2;                                                     \
+	BOOST_PP_SEQ_FOR_EACH(UNORDERED_MAP_INSERT, map1, seq1)             \
+	BOOST_PP_SEQ_FOR_EACH(UNORDERED_MAP_INSERT, map2, seq2)             \
+	BOOST_TEST(map1 op map2);                                           \
+}
 
 #define UNORDERED_EQUALITY_MULTIMAP_TEST(seq1, op, seq2)                    \
     {                                                                       \

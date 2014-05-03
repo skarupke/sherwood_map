@@ -9,36 +9,63 @@
 
 #include "../helpers/test.hpp"
 #include <string>
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 namespace at_tests {
 
 UNORDERED_AUTO_TEST(at_tests) {
-    BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Create Map" << std::endl;
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Create Map" << std::endl;
 
 	sherwood_map<std::string, int> x;
 	//typedef sherwood_map<std::string, int>::iterator iterator;
 
-    BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Add elements" << std::endl;
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Add elements" << std::endl;
 
-    x["one"] = 1;
-    x["two"] = 2;
+	x["one"] = 1;
+	x["two"] = 2;
 
-    BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Check existing elements" << std::endl;
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Check existing elements" << std::endl;
 
-    BOOST_TEST(x.at("one") == 1);
-    BOOST_TEST(x.at("two") == 2);
+	BOOST_TEST(x.at("one") == 1);
+	BOOST_TEST(x.at("two") == 2);
 
-    BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Check missing element" << std::endl;
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Check missing element" << std::endl;
 
-    try {
-        x.at("three");
-        BOOST_ERROR("Should have thrown.");
-    }
-    catch(std::out_of_range) {
-    }
+	try {
+		x.at("three");
+		BOOST_ERROR("Should have thrown.");
+	}
+	catch(std::out_of_range) {
+	}
 
-    BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Finished" << std::endl;
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Finished" << std::endl;
+}
+UNORDERED_AUTO_TEST(fat_at_tests) {
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Create Map" << std::endl;
+
+	fat_sherwood_map<std::string, int> x;
+	//typedef sherwood_map<std::string, int>::iterator iterator;
+
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Add elements" << std::endl;
+
+	x["one"] = 1;
+	x["two"] = 2;
+
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Check existing elements" << std::endl;
+
+	BOOST_TEST(x.at("one") == 1);
+	BOOST_TEST(x.at("two") == 2);
+
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Check missing element" << std::endl;
+
+	try {
+		x.at("three");
+		BOOST_ERROR("Should have thrown.");
+	}
+	catch(std::out_of_range) {
+	}
+
+	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Finished" << std::endl;
 }
 
 }

@@ -9,7 +9,7 @@
 #include <boost/config.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include <boost/unordered_set.hpp>
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 namespace test
 {
@@ -32,6 +32,11 @@ namespace test
     };
 	template <class K, class M, class H, class P, class A>
 	struct has_unique_keys<sherwood_map<K, M, H, P, A> >
+	{
+		BOOST_STATIC_CONSTANT(bool, value = true);
+	};
+	template <class K, class M, class H, class P, class A>
+	struct has_unique_keys<fat_sherwood_map<K, M, H, P, A> >
 	{
 		BOOST_STATIC_CONSTANT(bool, value = true);
 	};

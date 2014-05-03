@@ -23,7 +23,7 @@ struct self_swap_base : public test::exception_base
     T init() const { return T(values.begin(), values.end()); }
     void run(T& x) const { x.swap(x); }
     void check BOOST_PREVENT_MACRO_SUBSTITUTION(T const& x) const {
-        std::string scope(test::scope);
+		std::string scope(test::scope());
 
         // TODO: In C++11 exceptions are only allowed in the swap function.
         BOOST_TEST(
@@ -80,7 +80,7 @@ struct swap_base : public test::exception_base
         } catch (std::runtime_error) {}
     }
     void check BOOST_PREVENT_MACRO_SUBSTITUTION(data_type const& d) const {
-        std::string scope(test::scope);
+		std::string scope(test::scope());
 
         // TODO: In C++11 exceptions are only allowed in the swap function.
         BOOST_TEST(

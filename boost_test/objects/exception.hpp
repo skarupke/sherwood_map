@@ -54,20 +54,21 @@ namespace exception
             }
         }
 
-        object(object const& x)
-             : tag1_(x.tag1_), tag2_(x.tag2_)
-        {
-            UNORDERED_SCOPE(object::object(object)) {
-                UNORDERED_EPOINT("Mock object copy constructor.");
-            }
-        }
+		object(object const& x)
+			 : tag1_(x.tag1_), tag2_(x.tag2_)
+		{
+			UNORDERED_SCOPE(object::object(object)) {
+				UNORDERED_EPOINT("Mock object copy constructor.");
+			}
+		}
+		object(object &&) = default;
 
         ~object() {
             tag1_ = -1;
             tag2_ = -1;
         }
 
-        object& operator=(object const& x)
+		object& operator=(const object & x)
         {
             UNORDERED_SCOPE(object::operator=(object)) {
                 tag1_ = x.tag1_;
@@ -77,6 +78,7 @@ namespace exception
             }
             return *this;
         }
+		object & operator=(object &&) = default;
 
         friend bool operator==(object const& x1, object const& x2) {
             UNORDERED_SCOPE(operator==(object, object)) {

@@ -205,40 +205,43 @@ boost::unordered_multiset<test::object,
     test::hash, test::equal_to,
     test::allocator2<test::object> >* test_multiset_ptr;
 sherwood_map<test::movable, test::movable,
-    test::hash, test::equal_to,
-    test::allocator2<test::movable> >* test_map_ptr;
+	test::hash, test::equal_to,
+	test::allocator2<test::movable> >* test_map_ptr;
+fat_sherwood_map<test::movable, test::movable,
+	test::hash, test::equal_to,
+	test::allocator2<test::movable> >* test_fat_map_ptr;
 boost::unordered_multimap<int, int>* int_multimap_ptr;
 
 using test::default_generator;
 using test::generate_collisions;
 
 UNORDERED_TEST(rehash_empty_test1,
-	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)(test_fat_map_ptr)/*(int_multimap_ptr)*/)
 )
 UNORDERED_TEST(rehash_empty_test2,
-	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)(test_fat_map_ptr)/*(int_multimap_ptr)*/)
     ((default_generator)(generate_collisions))
 )
 UNORDERED_TEST(rehash_empty_test3,
-	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)(test_fat_map_ptr)/*(int_multimap_ptr)*/)
     ((default_generator)(generate_collisions))
 )
 UNORDERED_TEST(rehash_test1,
-	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)(test_fat_map_ptr)/*(int_multimap_ptr)*/)
     ((default_generator)(generate_collisions))
 )
 UNORDERED_TEST(reserve_empty_test1,
-	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)(test_fat_map_ptr)/*(int_multimap_ptr)*/)
 )
 UNORDERED_TEST(reserve_empty_test2,
-	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)(test_fat_map_ptr)/*(int_multimap_ptr)*/)
 )
 UNORDERED_TEST(reserve_test1,
-	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)(test_fat_map_ptr)/*(int_multimap_ptr)*/)
     ((default_generator)(generate_collisions))
 )
 UNORDERED_TEST(reserve_test2,
-	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)/*(int_multimap_ptr)*/)
+	(/*(int_set_ptr)(test_multiset_ptr)*/(test_map_ptr)(test_fat_map_ptr)/*(int_multimap_ptr)*/)
     ((default_generator)(generate_collisions))
 )
 

@@ -1,87 +1,20 @@
 #pragma once
 
+#include "sherwood_map_shared.hpp"
+
 #include <memory>
 #include <functional>
 #include <cmath>
 #include <algorithm>
 #include <cstddef>
 
-namespace detail
-{
-#ifdef PROFILE_SHERWOOD_MAP
-extern size_t profile_cost;
-#endif
-void throw_sherwood_map_out_of_range();
-size_t next_prime(size_t size);
-template<typename Result, typename Functor>
-struct functor_storage : Functor
-{
-	functor_storage() = default;
-	functor_storage(const Functor & functor)
-		: Functor(functor)
-	{
-	}
-	template<typename... Args>
-	Result operator()(Args &&... args)
-	{
-		return static_cast<Functor &>(*this)(std::forward<Args>(args)...);
-	}
-	template<typename... Args>
-	Result operator()(Args &&... args) const
-	{
-		return static_cast<const Functor &>(*this)(std::forward<Args>(args)...);
-	}
-};
-template<typename Result, typename... Args>
-struct functor_storage<Result, Result (*)(Args...)>
-{
-	typedef Result (*function_ptr)(Args...);
-	function_ptr function;
-	functor_storage(function_ptr function)
-		: function(function)
-	{
-	}
-	Result operator()(Args... args) const
-	{
-		return function(std::forward<Args>(args)...);
-	}
-	operator function_ptr &()
-	{
-		return function;
-	}
-	operator const function_ptr &()
-	{
-		return function;
-	}
-};
-template<typename It, typename Do, typename Undo>
-void exception_safe_for_each(It begin, It end, Do && do_func, Undo && undo_func)
-{
-	for (It it = begin; it != end; ++it)
-	{
-		try
-		{
-			do_func(*it);
-		}
-		catch(...)
-		{
-			while (it != begin)
-			{
-				undo_func(*--it);
-			}
-			throw;
-		}
-	}
-}
-}
-
-template<typename Key, typename Value, typename Hash = std::hash<Key>, typename Equality = std::equal_to<Key>, typename Allocator = std::allocator<std::pair<const Key, Value> > >
+template<typename Key, typename Value, typename Hash = std::hash<Key>, typename Equality = std::equal_to<Key>, typename Allocator = std::allocator<std::pair<Key, Value> > >
 class sherwood_map
 {
 public:
 	typedef Key key_type;
 	typedef Value mapped_type;
-	typedef std::pair<const Key, Value> value_type;
+	typedef std::pair<Key, Value> value_type;
 	typedef size_t size_type;
 	typedef ptrdiff_t difference_type;
 	typedef Hash hasher;
@@ -90,7 +23,7 @@ public:
 	typedef value_type & reference;
 	typedef const value_type & const_reference;
 private:
-	typedef typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<const Key, Value> > pretend_alloc;
+	typedef typename std::allocator_traits<Allocator>::template rebind_alloc<value_type> pretend_alloc;
 public:
 	typedef typename std::allocator_traits<pretend_alloc>::pointer pointer;
 	typedef typename std::allocator_traits<pretend_alloc>::const_pointer const_pointer;
@@ -101,137 +34,8 @@ private:
 	typedef typename std::allocator_traits<Allocator>::template rebind_alloc<Entry> actual_alloc;
 	typedef std::allocator_traits<actual_alloc> allocator_traits;
 
-	template<typename T, typename It>
-	struct WrappingIterator
-	{
-		T & operator*() const
-		{
-			return *it;
-		}
-		T * operator->() const
-		{
-			return &*it;
-		}
-		WrappingIterator & operator++()
-		{
-			if (++it == end)
-				it = begin;
-			return *this;
-		}
-		WrappingIterator operator++(int)
-		{
-			WrappingIterator copy(*this);
-			++*this;
-			return copy;
-		}
-		bool operator==(const WrappingIterator & other) const
-		{
-			return it == other.it;
-		}
-		bool operator!=(const WrappingIterator & other) const
-		{
-			return !(*this == other);
-		}
-
-		operator It() const
-		{
-			return it;
-		}
-
-		It it;
-		It begin;
-		It end;
-	};
-
-	static constexpr size_t special_value = 0;
-	static size_t adjust_for_special_value(size_t hash)
-	{
-		return std::max(size_t(1), hash);
-	}
-
-	typedef detail::functor_storage<size_t, hasher> hasher_storage;
-	typedef detail::functor_storage<bool, key_equal> equality_storage;
-	struct KeyOrValueHasher : hasher_storage
-	{
-		KeyOrValueHasher(const hasher & hash)
-			: hasher_storage(hash)
-		{
-		}
-		size_t operator()(const key_type & key)
-		{
-			return adjust_for_special_value(static_cast<hasher_storage &>(*this)(key));
-		}
-		size_t operator()(const key_type & key) const
-		{
-			return adjust_for_special_value(static_cast<const hasher_storage &>(*this)(key));
-		}
-		size_t operator()(const value_type & value)
-		{
-			return adjust_for_special_value(static_cast<hasher_storage &>(*this)(value.first));
-		}
-		size_t operator()(const value_type & value) const
-		{
-			return adjust_for_special_value(static_cast<const hasher_storage &>(*this)(value.first));
-		}
-		template<typename F, typename S>
-		size_t operator()(const std::pair<F, S> & value)
-		{
-			return adjust_for_special_value(static_cast<hasher_storage &>(*this)(value.first));
-		}
-		template<typename F, typename S>
-		size_t operator()(const std::pair<F, S> & value) const
-		{
-			return adjust_for_special_value(static_cast<const hasher_storage &>(*this)(value.first));
-		}
-	};
-	struct KeyOrValueEquality : equality_storage
-	{
-		KeyOrValueEquality(const key_equal & equality)
-			: equality_storage(equality)
-		{
-		}
-		bool operator()(const key_type & lhs, const key_type & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs, rhs);
-		}
-		bool operator()(const key_type & lhs, const value_type & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs, rhs.first);
-		}
-		bool operator()(const value_type & lhs, const key_type & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs.first, rhs);
-		}
-		bool operator()(const value_type & lhs, const value_type & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs.first, rhs.first);
-		}
-		template<typename F, typename S>
-		bool operator()(const key_type & lhs, const std::pair<F, S> & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs, rhs.first);
-		}
-		template<typename F, typename S>
-		bool operator()(const std::pair<F, S> & lhs, const key_type & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs.first, rhs);
-		}
-		template<typename F, typename S>
-		bool operator()(const value_type & lhs, const std::pair<F, S> & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs.first, rhs.first);
-		}
-		template<typename F, typename S>
-		bool operator()(const std::pair<F, S> & lhs, const value_type & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs.first, rhs.first);
-		}
-		template<typename FL, typename SL, typename FR, typename SR>
-		bool operator()(const std::pair<FL, SL> & lhs, const std::pair<FR, SR> & rhs)
-		{
-			return static_cast<equality_storage &>(*this)(lhs.first, rhs.first);
-		}
-	};
+	typedef detail::KeyOrValueHasher<key_type, value_type, hasher> KeyOrValueHasher;
+	typedef detail::KeyOrValueEquality<key_type, value_type, key_equal> KeyOrValueEquality;
 
 	struct StorageType : actual_alloc, KeyOrValueHasher, KeyOrValueEquality
 	{
@@ -295,7 +99,7 @@ private:
 			StorageType(other).swap(*this);
 			return *this;
 		}
-		StorageType & operator=(StorageType && other) noexcept(noexcept(this->swap(other)))
+		StorageType & operator=(StorageType && other) noexcept(std::is_nothrow_move_assignable<hasher>::value && std::is_nothrow_move_assignable<key_equal>::value && std::is_nothrow_move_assignable<actual_alloc>::value && std::is_nothrow_move_assignable<typename allocator_traits::pointer>::value)
 		{
 			swap(other);
 			return *this;
@@ -341,20 +145,59 @@ private:
 		const_iterator begin() const { return _begin; }
 		const_iterator end() const { return _end; }
 
+		static bool iterator_in_range(iterator check, iterator first, iterator last)
+		{
+			if (last < first) return check < last || check >= first;
+			else return check >= first && check < last;
+		}
+		static void iterator_advance_to_range(iterator & it, iterator first, iterator last)
+		{
+			if (last >= first) it = std::max(it, first);
+			else if (it >= last) it = std::max(it, first);
+		}
+
+		typedef detail::WrappingIterator<typename StorageType::iterator> WrapAroundIt;
+
+		static void erase_advance(WrapAroundIt & it, iterator target)
+		{
+			for (; it.it != target; ++it)
+			{
+				*it.it = Entry();
+			}
+		}
+
 		iterator erase(iterator first, iterator last)
 		{
-			std::fill(first, last, Entry());
-			auto stop = find_stop_bucket(last);
-			if (stop < last)
+			if (first == last) return first;
+			if (last == end())
 			{
-				std::rotate(first, last, _end);
-				difference_type num_to_move = last - first;
-				auto middle = std::min(stop, _begin + num_to_move);
-				std::swap_ranges(_begin, middle, _end - num_to_move);
-				std::rotate(_begin, middle, stop);
+				last = begin();
+				if (first == last)
+				{
+					std::fill(begin(), end(), Entry());
+					return end();
+				}
 			}
-			else std::rotate(first, last, stop);
-			return first;
+			size_t capacity_copy = capacity();
+			WrapAroundIt first_wrap{ first, begin(), end() };
+			WrapAroundIt last_wrap{ last, begin(), end() };
+			for (;; ++first_wrap)
+			{
+				if (last_wrap.it->hash == detail::empty_hash)
+				{
+					erase_advance(first_wrap, last_wrap.it);
+					return first;
+				}
+				iterator last_initial = initial_bucket(last_wrap.it->hash, capacity_copy);
+				WrapAroundIt last_next = std::next(last_wrap);
+				if (iterator_in_range(last_initial, std::next(first_wrap).it, last_next.it))
+				{
+					erase_advance(first_wrap, last_initial);
+					if (first_wrap == last_wrap) return first;
+				}
+				std::iter_swap(first_wrap.it, last_wrap.it);
+				last_wrap = last_next;
+			}
 		}
 		iterator initial_bucket(size_type hash, size_t capacity)
 		{
@@ -366,7 +209,7 @@ private:
 		}
 		size_t distance_to_initial_bucket(iterator it, size_t hash, size_t capacity) const
 		{
-			const_iterator initial = initial_bucket(hash, capacity);
+			const_iterator initial = _begin + ptrdiff_t(hash % capacity);
 			if (const_iterator(it) < initial) return (const_iterator(_end) - initial) + (it - _begin);
 			else return const_iterator(it) - initial;
 		}
@@ -377,26 +220,27 @@ private:
 			FoundNotEqual
 		};
 
-		typedef WrappingIterator<Entry, typename StorageType::iterator> WrapAroundIt;
-
 		template<typename First>
 		std::pair<iterator, FindResult> find_hash(size_type hash, const First & first)
 		{
 			size_t capacity_copy = capacity();
 			if (!capacity_copy) return { end(), FoundNotEqual };
-			size_t distance = 0;
-			for (WrapAroundIt it{initial_bucket(hash, capacity_copy), begin(), end()};; ++it, ++distance)
+			WrapAroundIt it{initial_bucket(hash, capacity_copy), begin(), end()};
+			size_t current_hash = it.it->hash;
+			if (current_hash == detail::empty_hash)
+				return { it.it, FoundEmpty };
+			if (current_hash == hash && static_cast<KeyOrValueEquality &>(*this)(it.it->get_entry().first, first))
+				return { it.it, FoundEqual };
+			for (size_t distance = 1;; ++distance)
 			{
-				#ifdef PROFILE_SHERWOOD_MAP
-					++detail::profile_cost;
-				#endif
-				if (it->is_empty())
-					return { it, FoundEmpty };
-				size_t current_hash = it->get_hash();
-				if (current_hash == hash && static_cast<KeyOrValueEquality &>(*this)(it->get_entry().first, first))
-					return { it, FoundEqual };
-				if (distance_to_initial_bucket(it, current_hash, capacity_copy) < distance)
-					return { it, FoundNotEqual };
+				++it;
+				current_hash = it.it->hash;
+				if (current_hash == detail::empty_hash)
+					return { it.it, FoundEmpty };
+				if (current_hash == hash && static_cast<KeyOrValueEquality &>(*this)(it.it->get_entry().first, first))
+					return { it.it, FoundEqual };
+				if (distance_to_initial_bucket(it.it, current_hash, capacity_copy) < distance)
+					return { it.it, FoundNotEqual };
 			}
 		}
 		template<typename First>
@@ -408,21 +252,6 @@ private:
 	private:
 		typename allocator_traits::pointer _begin;
 		typename allocator_traits::pointer _end;
-
-		iterator find_stop_bucket(iterator start)
-		{
-			size_t capacity_copy = capacity();
-			if (start == end())
-				start = begin();
-			for (WrapAroundIt it{start, begin(), end()};; ++it)
-			{
-				#ifdef PROFILE_SHERWOOD_MAP
-					++detail::profile_cost;
-				#endif
-				if (it->is_empty() || distance_to_initial_bucket(it, it->get_hash(), capacity_copy) == 0)
-					return it;
-			}
-		}
 	};
 
 	template<typename O, typename It>
@@ -435,11 +264,17 @@ private:
 		templated_iterator(It it, It end)
 			: it(it), end(end)
 		{
-			for (; this->it != this->end && this->it->is_empty();)
+			for (; this->it != this->end && this->it->hash == detail::empty_hash;)
 			{
 				++this->it;
 			}
 		}
+		template<typename OO, typename OIt>
+		templated_iterator(templated_iterator<OO, OIt> other)
+			: it(other.it), end(other.end)
+		{
+		}
+
 		O & operator*() const
 		{
 			return it->get_entry();
@@ -475,12 +310,6 @@ private:
 		bool operator!=(const templated_iterator<OO, OIt> & other) const
 		{
 			return !(*this == other);
-		}
-
-		template<typename OO, typename OIt>
-		operator templated_iterator<OO, OIt>() const
-		{
-			return { it, end };
 		}
 
 	private:
@@ -523,7 +352,11 @@ public:
 		return *this;
 	}
 	sherwood_map & operator=(sherwood_map && other) = default;
-
+	sherwood_map & operator=(std::initializer_list<value_type> il)
+	{
+		sherwood_map(il, 0, hash_function(), key_eq(), get_allocator()).swap(*this);
+		return *this;
+	}
 	explicit sherwood_map(size_t bucket_count, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
 		: entries(bucket_count, hash, equality, actual_alloc(allocator))
 	{
@@ -643,24 +476,31 @@ public:
 			++_size;
 			return { { found.first, entries.end() }, true };
 		case StorageType::FoundNotEqual:
+			// create the object to insert early so that if it throws, nothing bad has happened
+			// after this I assume noexcept moves
+			value_type to_insert(std::forward<First>(first), std::forward<Args>(args)...);
 			size_t capacity = entries.capacity();
 			Entry & current = *found.first;
-			size_t distance = entries.distance_to_initial_bucket(found.first, current.get_hash(), capacity);
 			typename StorageType::WrapAroundIt next{found.first, entries.begin(), entries.end()};
-			for (++distance, ++next; !next->is_empty(); ++distance, ++next)
+			++next;
+			if (next.it->hash != detail::empty_hash)
 			{
-				#ifdef PROFILE_SHERWOOD_MAP
-					++detail::profile_cost;
-				#endif
-				size_t next_distance = entries.distance_to_initial_bucket(next, next->get_hash(), capacity);
-				if (next_distance < distance)
+				size_t distance = entries.distance_to_initial_bucket(found.first, current.hash, capacity) + 1;
+				do
 				{
-					distance = next_distance;
-					current.swap_non_empty(*next);
+					size_t next_distance = entries.distance_to_initial_bucket(next.it, next.it->hash, capacity);
+					if (next_distance < distance)
+					{
+						distance = next_distance;
+						current.swap_non_empty(*next.it);
+					}
+					++distance;
+					++next;
 				}
+				while (next.it->hash != detail::empty_hash);
 			}
-			next->init(current.get_hash(), std::move(current.get_entry()));
-			current.reinit(hash, std::forward<First>(first), std::forward<Args>(args)...);
+			next.it->init(current.hash, std::move(current.get_entry()));
+			current.reinit(hash, std::move(to_insert));
 			++_size;
 			return { { found.first, entries.end() }, true };
 		}
@@ -700,18 +540,13 @@ public:
 			return 1;
 		}
 	}
-
 	mapped_type & operator[](const key_type & key)
 	{
-		auto found = find(key);
-		if (found != end()) return found->second;
-		else return emplace(key, mapped_type()).first->second;
+		return emplace(key, detail::lazily_defauly_construct<mapped_type>()).first->second;
 	}
 	mapped_type & operator[](key_type && key)
 	{
-		auto found = find(key);
-		if (found != end()) return found->second;
-		else return emplace(std::move(key), mapped_type()).first->second;
+		return emplace(std::move(key), detail::lazily_defauly_construct<mapped_type>()).first->second;
 	}
 	template<typename T>
 	iterator find(const T & key)
@@ -785,8 +620,8 @@ public:
 	}
 	void reserve(size_type count)
 	{
-		size_t new_size = required_capacity(count, max_load_factor());
-		if (new_size > entries.capacity()) reallocate(new_size);
+		size_t new_size = detail::required_capacity(count, max_load_factor());
+		if (new_size > entries.capacity()) reallocate(detail::next_prime(new_size));
 	}
 	void rehash(size_type count)
 	{
@@ -835,7 +670,7 @@ public:
 private:
 	void grow()
 	{
-		reallocate(detail::next_prime(std::max(required_capacity(_size + 1, _max_load_factor), entries.capacity() * 2)));
+		reallocate(detail::next_prime(std::max(detail::required_capacity(_size + 1, _max_load_factor), entries.capacity() * 2)));
 	}
 	void reallocate(size_type size)
 	{
@@ -844,7 +679,7 @@ private:
 		_size = 0;
 		for (Entry & entry : replacement)
 		{
-			if (!entry.is_empty())
+			if (entry.hash != detail::empty_hash)
 				emplace(std::move(entry.get_entry()));
 		}
 	}
@@ -857,79 +692,65 @@ private:
 	struct Entry
 	{
 		Entry()
-			: hash(special_value)
+			: hash(detail::empty_hash)
 		{
 		}
 		template<typename... Args>
 		void init(size_t hash, Args &&... args)
 		{
-			this->hash = hash;
 			new (&entry) value_type(std::forward<Args>(args)...);
-		}
-		template<typename... Args>
-		void reinit(size_t hash, Args &&... args)
-		{
 			this->hash = hash;
-			value_type as_value_type(std::forward<Args>(args)...);
-			// cast away the constness to allow move assignment
-			entry = reinterpret_cast<std::pair<Key, Value> &&>(as_value_type);
+		}
+		void reinit(size_t hash, value_type && value)
+		{
+			entry = std::move(value);
+			this->hash = hash;
 		}
 		Entry(const Entry & other)
-			: hash(other.hash)
+			: Entry()
 		{
-			if (hash != special_value)
-				new (&entry) std::pair<Key, Value>(other.entry);
+			if (other.hash != detail::empty_hash)
+				init(other.hash, other.entry);
 		}
 		Entry(Entry && other)
-			: hash(other.hash)
+			: Entry()
 		{
-			if (hash != special_value)
-				new (&entry) std::pair<Key, Value>(std::move(other.entry));
+			if (other.hash != detail::empty_hash)
+				init(other.hash, std::move(other.entry));
 		}
 		Entry & operator=(Entry other)
 		{
-			if (other.hash == special_value)
+			if (other.hash == detail::empty_hash)
 			{
-				if (hash != special_value)
+				if (hash != detail::empty_hash)
 				{
-					hash = special_value;
+					hash = detail::empty_hash;
 					entry.~pair();
 				}
 			}
-			else if (hash == special_value)
+			else if (hash == detail::empty_hash)
 			{
-				new (&entry) std::pair<Key, Value>(std::move(other.entry));
-				hash = other.hash;
+				init(other.hash, std::move(other.entry));
 			}
 			else
 			{
-				entry = std::move(other.entry);
-				hash = other.hash;
+				reinit(other.hash, std::move(other.entry));
 			}
 			return *this;
 		}
 		~Entry()
 		{
-			if (hash == special_value)
+			if (hash == detail::empty_hash)
 				return;
 			entry.~pair();
 		}
-		bool is_empty() const
+		value_type & get_entry()
 		{
-			return hash == special_value;
+			return entry;
 		}
-		std::pair<const Key, Value> & get_entry()
+		const value_type & get_entry() const
 		{
-			return reinterpret_cast<std::pair<const Key, Value> &>(entry);
-		}
-		const std::pair<const Key, Value> & get_entry() const
-		{
-			return reinterpret_cast<const std::pair<const Key, Value> &>(entry);
-		}
-
-		size_t get_hash() const
-		{
-			return hash;
+			return entry;
 		}
 
 		void swap_non_empty(Entry & other)
@@ -939,18 +760,13 @@ private:
 			swap(entry, other.entry);
 		}
 
-	private:
 		size_t hash;
+	private:
 		union
 		{
-			char unused;
-			std::pair<Key, Value> entry;
+			value_type entry;
 		};
 	};
-	static size_type required_capacity(size_type size, float load_factor)
-	{
-		return detail::next_prime(size_type(std::ceil(size / load_factor)));
-	}
 
 	StorageType entries;
 	size_t _size = 0;

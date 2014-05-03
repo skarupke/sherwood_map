@@ -15,7 +15,7 @@
 #include "../helpers/equivalent.hpp"
 #include "../helpers/input_iterator.hpp"
 #include "../helpers/invariants.hpp"
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 namespace constructor_tests {
 
@@ -401,8 +401,11 @@ void map_constructor_test(T*, test::random_generator const& generator)
 }
 
 sherwood_map<test::object, test::object,
-    test::hash, test::equal_to,
-    std::allocator<test::object> >* test_map_std_alloc;
+	test::hash, test::equal_to,
+	std::allocator<test::object> >* test_map_std_alloc;
+fat_sherwood_map<test::object, test::object,
+	test::hash, test::equal_to,
+	std::allocator<test::object> >* test_fat_map_std_alloc;
 
 boost::unordered_set<test::object,
     test::hash, test::equal_to,
@@ -411,8 +414,11 @@ boost::unordered_multiset<test::object,
     test::hash, test::equal_to,
     test::allocator2<test::object> >* test_multiset;
 sherwood_map<test::object, test::object,
-    test::hash, test::equal_to,
-    test::allocator2<test::object> >* test_map;
+	test::hash, test::equal_to,
+	test::allocator2<test::object> >* test_map;
+fat_sherwood_map<test::object, test::object,
+	test::hash, test::equal_to,
+	test::allocator2<test::object> >* test_fat_map;
 boost::unordered_multimap<test::object, test::object,
     test::hash, test::equal_to,
     test::allocator1<test::object> >* test_multimap;
@@ -421,17 +427,17 @@ using test::default_generator;
 using test::generate_collisions;
 
 UNORDERED_TEST(constructor_tests1,
-	((test_map_std_alloc)/*(test_set)(test_multiset)*/(test_map)/*(test_multimap)*/)
+	((test_map_std_alloc)/*(test_set)(test_multiset)*/(test_map)(test_fat_map)/*(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 
 UNORDERED_TEST(constructor_tests2,
-	(/*(test_set)(test_multiset)*/(test_map)/*(test_multimap)*/)
+	(/*(test_set)(test_multiset)*/(test_map)(test_fat_map)/*(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 
 UNORDERED_TEST(map_constructor_test,
-	((test_map_std_alloc)(test_map)/*(test_multimap)*/)
+	((test_map_std_alloc)(test_fat_map_std_alloc)(test_map)(test_fat_map)/*(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 

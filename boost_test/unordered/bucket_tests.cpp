@@ -13,7 +13,7 @@
 #include "../objects/test.hpp"
 #include "../helpers/random_values.hpp"
 #include "../helpers/helpers.hpp"
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 #if BOOST_WORKAROUND(BOOST_MSVC, < 1400)
 #pragma warning(disable:4267) // conversion from 'size_t' to 'unsigned int',
@@ -80,8 +80,11 @@ boost::unordered_multiset<test::object,
     test::hash, test::equal_to,
     test::allocator1<test::object> >* test_multiset;
 sherwood_map<test::object, test::object,
-    test::hash, test::equal_to,
-    test::allocator1<test::object> >* test_map;
+	test::hash, test::equal_to,
+	test::allocator1<test::object> >* test_map;
+sherwood_map<test::object, test::object,
+	test::hash, test::equal_to,
+	test::allocator1<test::object> >* test_fat_map;
 boost::unordered_multimap<test::object, test::object,
     test::hash, test::equal_to,
     test::allocator2<test::object> >* test_multimap;
@@ -90,7 +93,7 @@ using test::default_generator;
 using test::generate_collisions;
 
 UNORDERED_TEST(tests,
-	(/*(test_multimap_std_alloc)(test_set)(test_multiset)*/(test_map)/*(test_multimap)*/)
+	(/*(test_multimap_std_alloc)(test_set)(test_multiset)*/(test_map)(test_fat_map)/*(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 

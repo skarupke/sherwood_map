@@ -13,7 +13,7 @@
 #include "../helpers/random_values.hpp"
 #include "../helpers/tracker.hpp"
 #include "../helpers/equivalent.hpp"
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 #include <iostream>
 
@@ -191,22 +191,36 @@ void assign_tests2(T*, test::random_generator generator)
 }
 
 sherwood_map<test::object, test::object,
-    test::hash, test::equal_to,
-    std::allocator<test::object> >* test_map_std_alloc;
+	test::hash, test::equal_to,
+	std::allocator<test::object> >* test_map_std_alloc;
+fat_sherwood_map<test::object, test::object,
+	test::hash, test::equal_to,
+	std::allocator<test::object> >* test_fat_map_std_alloc;
 
 sherwood_map<test::object, test::object,
-    test::hash, test::equal_to,
-    test::allocator2<test::object> >* test_map;
+	test::hash, test::equal_to,
+	test::allocator2<test::object> >* test_map;
+fat_sherwood_map<test::object, test::object,
+	test::hash, test::equal_to,
+	test::allocator2<test::object> >* test_fat_map;
 
 sherwood_map<test::object, test::object,
-        test::hash, test::equal_to,
-        test::cxx11_allocator<test::object, test::propagate_assign> >*
-    test_map_prop_assign;
+		test::hash, test::equal_to,
+		test::cxx11_allocator<test::object, test::propagate_assign> >*
+	test_map_prop_assign;
+fat_sherwood_map<test::object, test::object,
+		test::hash, test::equal_to,
+		test::cxx11_allocator<test::object, test::propagate_assign> >*
+	test_fat_map_prop_assign;
 
 sherwood_map<test::object, test::object,
-        test::hash, test::equal_to,
-        test::cxx11_allocator<test::object, test::no_propagate_assign> >*
-    test_map_no_prop_assign;
+		test::hash, test::equal_to,
+		test::cxx11_allocator<test::object, test::no_propagate_assign> >*
+	test_map_no_prop_assign;
+fat_sherwood_map<test::object, test::object,
+		test::hash, test::equal_to,
+		test::cxx11_allocator<test::object, test::no_propagate_assign> >*
+	test_fat_map_no_prop_assign;
 
 using test::default_generator;
 using test::generate_collisions;
@@ -218,18 +232,18 @@ bool is_propagate(T*)
 }
 
 UNORDERED_TEST(assign_tests1, (
-        (test_map_std_alloc)
-		(test_map)
-		(test_map_prop_assign)
-		(test_map_no_prop_assign)
+		(test_map_std_alloc)(test_fat_map_std_alloc)
+		(test_map)(test_fat_map)
+		(test_map_prop_assign)(test_fat_map_prop_assign)
+		(test_map_no_prop_assign)(test_fat_map_no_prop_assign)
     )
     ((default_generator)(generate_collisions))
 )
 
 UNORDERED_TEST(assign_tests2, (
-		(test_map)
-		(test_map_prop_assign)
-		(test_map_no_prop_assign)
+		(test_map)(test_fat_map)
+		(test_map_prop_assign)(test_fat_map_prop_assign)
+		(test_map_no_prop_assign)(test_fat_map_no_prop_assign)
     )
     ((default_generator)(generate_collisions))
 )
@@ -237,14 +251,24 @@ UNORDERED_TEST(assign_tests2, (
 #if !defined(BOOST_NO_CXX11_HDR_INITIALIZER_LIST)
 
 UNORDERED_AUTO_TEST(assign_default_initializer_list) {
-    std::cerr<<"Initializer List Tests\n";
-	std::initializer_list<std::pair<int, int> > init;
+	std::cerr<<"Initializer List Tests\n";
+	std::initializer_list<typename sherwood_map<int, int>::value_type> init;
 	sherwood_map<int, int> x1;
-    x1[25] = 3;
-    x1[16] = 10;
-    BOOST_TEST(!x1.empty());
-    x1 = init;
-    BOOST_TEST(x1.empty());
+	x1[25] = 3;
+	x1[16] = 10;
+	BOOST_TEST(!x1.empty());
+	x1 = init;
+	BOOST_TEST(x1.empty());
+}
+UNORDERED_AUTO_TEST(fat_assign_default_initializer_list) {
+	std::cerr<<"Initializer List Tests\n";
+	std::initializer_list<typename fat_sherwood_map<int, int>::value_type> init;
+	fat_sherwood_map<int, int> x1;
+	x1[25] = 3;
+	x1[16] = 10;
+	BOOST_TEST(!x1.empty());
+	x1 = init;
+	BOOST_TEST(x1.empty());
 }
 
 #endif

@@ -94,6 +94,13 @@ namespace test
 			BOOST_DEDUCED_TYPENAME equals_to_compare<P>::type>
 			type;
 	};
+	template <class K, class M, class H, class P, class A>
+	struct ordered_base<fat_sherwood_map<K, M, H, P, A> >
+	{
+		typedef std::map<K, M,
+			BOOST_DEDUCED_TYPENAME equals_to_compare<P>::type>
+			type;
+	};
 
 	template <class K, class M, class H, class P, class A>
     struct ordered_base<boost::unordered_multimap<K, M, H, P, A> >

@@ -7,7 +7,7 @@
 #include <boost/unordered_set.hpp>
 #include <boost/unordered_map.hpp>
 #include "../helpers/postfix.hpp"
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 #include "../helpers/test.hpp"
 
@@ -34,6 +34,8 @@ namespace noexcept_tests
 		//            boost::unordered_multiset<int> >::value));
 		BOOST_TEST((std::is_nothrow_move_constructible<
 					sherwood_map<int, int> >::value));
+		BOOST_TEST((std::is_nothrow_move_constructible<
+					fat_sherwood_map<int, int> >::value));
 		//BOOST_TEST((std::is_nothrow_move_constructible<
 		//            boost::unordered_multimap<int, int> >::value));
 #endif

@@ -14,7 +14,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include "../helpers/equivalent.hpp"
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 template <class X>
 void simple_test(X const& a)
@@ -115,12 +115,19 @@ UNORDERED_AUTO_TEST(simple_tests)
     std::cout<<"Test unordered_map.\n";
 	sherwood_map<int, int> map;
 
-    for(int i2 = 0; i2 < 1000; ++i2) {
-        map.insert(std::pair<const int, int>(rand(), rand()));
-    }
-    simple_test(map);
+	for(int i2 = 0; i2 < 1000; ++i2) {
+		map.insert(std::pair<const int, int>(rand(), rand()));
+	}
+	simple_test(map);
 
-    std::cout<<"Test unordered_multimap.\n";
+	fat_sherwood_map<int, int> fat_map;
+
+	for(int i2 = 0; i2 < 1000; ++i2) {
+		fat_map.insert(std::pair<const int, int>(rand(), rand()));
+	}
+	simple_test(fat_map);
+
+	std::cout<<"Test unordered_multimap.\n";
     boost::unordered_multimap<int, int> multimap;
 
     for(int i3 = 0; i3 < 1000; ++i3) {

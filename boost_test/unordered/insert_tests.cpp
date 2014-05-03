@@ -17,7 +17,7 @@
 #include "../helpers/invariants.hpp"
 #include "../helpers/input_iterator.hpp"
 #include "../helpers/helpers.hpp"
-#include "sherwoodMap.hpp"
+#include "sherwood_map.hpp"
 
 #include <iostream>
 
@@ -519,8 +519,11 @@ boost::unordered_multiset<test::movable,
     test::hash, test::equal_to,
     test::allocator2<test::movable> >* test_multiset;
 sherwood_map<test::movable, test::movable,
-    test::hash, test::equal_to,
-    test::allocator2<test::movable> >* test_map;
+	test::hash, test::equal_to,
+	test::allocator2<test::movable> >* test_map;
+fat_sherwood_map<test::movable, test::movable,
+	test::hash, test::equal_to,
+	test::allocator2<test::movable> >* test_fat_map;
 boost::unordered_multimap<test::object, test::object,
     test::hash, test::equal_to,
     test::allocator1<test::object> >* test_multimap;
@@ -529,7 +532,7 @@ using test::default_generator;
 using test::generate_collisions;
 
 UNORDERED_TEST(unique_insert_tests1,
-	(/*(test_set_std_alloc)(test_set)*/(test_map))
+	(/*(test_set_std_alloc)(test_set)*/(test_map)(test_fat_map))
     ((default_generator)(generate_collisions))
 )
 
@@ -539,12 +542,12 @@ UNORDERED_TEST(unique_insert_tests1,
 )*/
 
 UNORDERED_TEST(insert_tests2,
-	(/*(test_multimap_std_alloc)(test_set)(test_multiset)*/(test_map)/*(test_multimap)*/)
+	(/*(test_multimap_std_alloc)(test_set)(test_multiset)*/(test_map)(test_fat_map)/*(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 
 UNORDERED_TEST(unique_emplace_tests1,
-	(/*(test_set_std_alloc)(test_set)*/(test_map))
+	(/*(test_set_std_alloc)(test_set)*/(test_map)(test_fat_map))
     ((default_generator)(generate_collisions))
 )
 
@@ -554,29 +557,29 @@ UNORDERED_TEST(unique_emplace_tests1,
 )*/
 
 UNORDERED_TEST(move_emplace_tests,
-	(/*(test_set_std_alloc)(test_multimap_std_alloc)(test_set)*/(test_map)
+	(/*(test_set_std_alloc)(test_multimap_std_alloc)(test_set)*/(test_map)(test_fat_map)
 		/*(test_multiset)(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 
 UNORDERED_TEST(default_emplace_tests,
-	(/*(test_set_std_alloc)(test_multimap_std_alloc)(test_set)*/(test_map)
+	(/*(test_set_std_alloc)(test_multimap_std_alloc)(test_set)*/(test_map)(test_fat_map)
 		/*(test_multiset)(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 
 UNORDERED_TEST(map_tests,
-    ((test_map))
+	((test_map)(test_fat_map))
     ((default_generator)(generate_collisions))
 )
 
 UNORDERED_TEST(map_insert_range_test1,
-	(/*(test_multimap_std_alloc)*/(test_map)/*(test_multimap)*/)
+	(/*(test_multimap_std_alloc)*/(test_map)(test_fat_map)/*(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 
 UNORDERED_TEST(map_insert_range_test2,
-	(/*(test_multimap_std_alloc)*/(test_map)/*(test_multimap)*/)
+	(/*(test_multimap_std_alloc)*/(test_map)(test_fat_map)/*(test_multimap)*/)
     ((default_generator)(generate_collisions))
 )
 
@@ -649,10 +652,19 @@ UNORDERED_AUTO_TEST(insert_initializer_list_multiset)
 UNORDERED_AUTO_TEST(insert_initializer_list_map)
 {
 	sherwood_map<std::string, std::string> map;
-    //map.insert({});
-    BOOST_TEST(map.empty());
-    map.insert({{"a", "b"},{"a", "b"},{"d", ""}});
-    BOOST_TEST_EQ(map.size(), 2u);
+	map.insert({});
+	BOOST_TEST(map.empty());
+	map.insert({{"a", "b"},{"a", "b"},{"d", ""}});
+	BOOST_TEST_EQ(map.size(), 2u);
+}
+
+UNORDERED_AUTO_TEST(insert_initializer_list_fat_map)
+{
+	fat_sherwood_map<std::string, std::string> map;
+	map.insert({});
+	BOOST_TEST(map.empty());
+	map.insert({{"a", "b"},{"a", "b"},{"d", ""}});
+	BOOST_TEST_EQ(map.size(), 2u);
 }
 
 UNORDERED_AUTO_TEST(insert_initializer_list_multimap)
@@ -708,14 +720,29 @@ UNORDERED_AUTO_TEST(map_emplace_test)
 	sherwood_map<int, overloaded_constructor> x;
 
 #if !BOOST_WORKAROUND(__SUNPRO_CC, BOOST_TESTED_AT(0x5100))
-    x.emplace();
-    BOOST_TEST(x.find(0) != x.end() &&
-        x.find(0)->second == overloaded_constructor());
+	x.emplace();
+	BOOST_TEST(x.find(0) != x.end() &&
+		x.find(0)->second == overloaded_constructor());
 #endif
 
-    x.emplace(2, 3);
-    BOOST_TEST(x.find(2) != x.end() &&
-        x.find(2)->second == overloaded_constructor(3));
+	x.emplace(2, 3);
+	BOOST_TEST(x.find(2) != x.end() &&
+		x.find(2)->second == overloaded_constructor(3));
+}
+
+UNORDERED_AUTO_TEST(fat_map_emplace_test)
+{
+	fat_sherwood_map<int, overloaded_constructor> x;
+
+#if !BOOST_WORKAROUND(__SUNPRO_CC, BOOST_TESTED_AT(0x5100))
+	x.emplace();
+	BOOST_TEST(x.find(0) != x.end() &&
+		x.find(0)->second == overloaded_constructor());
+#endif
+
+	x.emplace(2, 3);
+	BOOST_TEST(x.find(2) != x.end() &&
+		x.find(2)->second == overloaded_constructor(3));
 }
 
 UNORDERED_AUTO_TEST(set_emplace_test)

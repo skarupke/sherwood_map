@@ -5,14 +5,17 @@ CONFIG -= qt
 
 QMAKE_CXXFLAGS += -std=c++11
 QMAKE_CXXFLAGS += -Werror
+QMAKE_CXXFLAGS += -Wextra
 release: QMAKE_CXXFLAGS += -g
-debug: QMAKE_CXXFLAGS += -O0
+address_sanitizer: QMAKE_CXXFLAGS += -fsanitize=address
+address_sanitizer: QMAKE_CXXFLAGS += -fsanitize=use-after-return
+address_sanitizer: QMAKE_LFLAGS += -fsanitize=address
+static_analysis: QMAKE_CXXFLAGS -= -Qunused-arguments
 
 LIBS += /usr/lib/libgtest.a
 LIBS += -pthread
 
 SOURCES += main.cpp \
-    sherwoodMap.cpp \
     boost_test/exception/assign_exception_tests.cpp \
     boost_test/exception/constructor_exception_tests.cpp \
     boost_test/exception/copy_exception_tests.cpp \
@@ -47,10 +50,10 @@ SOURCES += main.cpp \
     boost_test/unordered/rehash_tests.cpp \
     boost_test/unordered/simple_tests.cpp \
     boost_test/unordered/swap_tests.cpp \
-    boost_test/unordered/unnecessary_copy_tests.cpp
+    boost_test/unordered/unnecessary_copy_tests.cpp \
+    sherwood_map.cpp
 
 HEADERS += \
-    sherwoodMap.hpp \
     boost_test/exception/containers.hpp \
     boost_test/helpers/check_return_type.hpp \
     boost_test/helpers/count.hpp \
@@ -75,7 +78,11 @@ HEADERS += \
     boost_test/objects/fwd.hpp \
     boost_test/objects/minimal.hpp \
     boost_test/objects/test.hpp \
-    boost_test/unordered/compile_tests.hpp
+    boost_test/unordered/compile_tests.hpp \
+    sherwood_map.hpp \
+    sherwood_map_one_array.hpp \
+    sherwood_map_two_arrays.hpp \
+    sherwood_map_shared.hpp
 
 OTHER_FILES +=
 
