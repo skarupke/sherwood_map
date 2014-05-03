@@ -7,9 +7,10 @@
 #include <cmath>
 #include <algorithm>
 #include <cstddef>
+#include <stdexcept>
 
 template<typename Key, typename Value, typename Hash = std::hash<Key>, typename Equality = std::equal_to<Key>, typename Allocator = std::allocator<std::pair<Key, Value> > >
-class sherwood_map
+class thin_sherwood_map
 {
 public:
 	typedef Key key_type;
@@ -246,7 +247,7 @@ private:
 		template<typename First>
 		std::pair<const_iterator, FindResult> find_hash(size_type hash, const First & first) const
 		{
-			return const_cast<sherwood_map &>(*this).find_hash(hash, first);
+			return const_cast<thin_sherwood_map &>(*this).find_hash(hash, first);
 		}
 
 	private:
@@ -313,7 +314,7 @@ private:
 		}
 
 	private:
-		friend class sherwood_map;
+		friend class thin_sherwood_map;
 		It it;
 		It end;
 	};
@@ -322,83 +323,83 @@ public:
 	typedef templated_iterator<value_type, typename StorageType::iterator> iterator;
 	typedef templated_iterator<const value_type, typename StorageType::const_iterator> const_iterator;
 
-	sherwood_map() = default;
-	sherwood_map(const sherwood_map & other)
-		: sherwood_map(other, std::allocator_traits<Allocator>::select_on_container_copy_construction(other.get_allocator()))
+	thin_sherwood_map() = default;
+	thin_sherwood_map(const thin_sherwood_map & other)
+		: thin_sherwood_map(other, std::allocator_traits<Allocator>::select_on_container_copy_construction(other.get_allocator()))
 	{
 	}
-	sherwood_map(const sherwood_map & other, const Allocator & alloc)
+	thin_sherwood_map(const thin_sherwood_map & other, const Allocator & alloc)
 		: entries(other.entries, actual_alloc(alloc)), _max_load_factor(other._max_load_factor)
 	{
 		insert(other.begin(), other.end());
 	}
-	sherwood_map(sherwood_map && other) noexcept(std::is_nothrow_move_constructible<StorageType>::value)
+	thin_sherwood_map(thin_sherwood_map && other) noexcept(std::is_nothrow_move_constructible<StorageType>::value)
 		: entries(std::move(other.entries))
 		, _size(other._size)
 		, _max_load_factor(other._max_load_factor)
 	{
 		other._size = 0;
 	}
-	sherwood_map(sherwood_map && other, const Allocator & alloc)
+	thin_sherwood_map(thin_sherwood_map && other, const Allocator & alloc)
 		: entries(std::move(other.entries), actual_alloc(alloc))
 		, _size(other._size)
 		, _max_load_factor(other._max_load_factor)
 	{
 		other._size = 0;
 	}
-	sherwood_map & operator=(const sherwood_map & other)
+	thin_sherwood_map & operator=(const thin_sherwood_map & other)
 	{
-		sherwood_map(other).swap(*this);
+		thin_sherwood_map(other).swap(*this);
 		return *this;
 	}
-	sherwood_map & operator=(sherwood_map && other) = default;
-	sherwood_map & operator=(std::initializer_list<value_type> il)
+	thin_sherwood_map & operator=(thin_sherwood_map && other) = default;
+	thin_sherwood_map & operator=(std::initializer_list<value_type> il)
 	{
-		sherwood_map(il, 0, hash_function(), key_eq(), get_allocator()).swap(*this);
+		thin_sherwood_map(il, 0, hash_function(), key_eq(), get_allocator()).swap(*this);
 		return *this;
 	}
-	explicit sherwood_map(size_t bucket_count, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
+	explicit thin_sherwood_map(size_t bucket_count, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
 		: entries(bucket_count, hash, equality, actual_alloc(allocator))
 	{
 	}
-	explicit sherwood_map(const Allocator & allocator)
-		: sherwood_map(0, allocator)
+	explicit thin_sherwood_map(const Allocator & allocator)
+		: thin_sherwood_map(0, allocator)
 	{
 	}
-	explicit sherwood_map(size_t bucket_count, const Allocator & allocator)
-		: sherwood_map(bucket_count, hasher(), allocator)
+	explicit thin_sherwood_map(size_t bucket_count, const Allocator & allocator)
+		: thin_sherwood_map(bucket_count, hasher(), allocator)
 	{
 	}
-	sherwood_map(size_t bucket_count, const hasher & hash, const Allocator & allocator)
-		: sherwood_map(bucket_count, hash, key_equal(), allocator)
+	thin_sherwood_map(size_t bucket_count, const hasher & hash, const Allocator & allocator)
+		: thin_sherwood_map(bucket_count, hash, key_equal(), allocator)
 	{
 	}
 	template<typename It>
-	sherwood_map(It begin, It end, size_t bucket_count = 0, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
+	thin_sherwood_map(It begin, It end, size_t bucket_count = 0, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
 		: entries(bucket_count, hash, equality, actual_alloc(allocator))
 	{
 		insert(begin, end);
 	}
 	template<typename It>
-	sherwood_map(It begin, It end, size_t bucket_count, const Allocator & allocator)
-		: sherwood_map(begin, end, bucket_count, hasher(), allocator)
+	thin_sherwood_map(It begin, It end, size_t bucket_count, const Allocator & allocator)
+		: thin_sherwood_map(begin, end, bucket_count, hasher(), allocator)
 	{
 	}
 	template<typename It>
-	sherwood_map(It begin, It end, size_t bucket_count, const hasher & hash, const Allocator & allocator)
-		: sherwood_map(begin, end, bucket_count, hash, key_equal(), allocator)
+	thin_sherwood_map(It begin, It end, size_t bucket_count, const hasher & hash, const Allocator & allocator)
+		: thin_sherwood_map(begin, end, bucket_count, hash, key_equal(), allocator)
 	{
 	}
-	sherwood_map(std::initializer_list<value_type> il, size_type bucket_count = 0, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
-		: sherwood_map(il.begin(), il.end(), bucket_count, hash, equality, allocator)
+	thin_sherwood_map(std::initializer_list<value_type> il, size_type bucket_count = 0, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
+		: thin_sherwood_map(il.begin(), il.end(), bucket_count, hash, equality, allocator)
 	{
 	}
-	sherwood_map(std::initializer_list<value_type> il, size_type bucket_count, const hasher & hash, const Allocator & allocator)
-		: sherwood_map(il, bucket_count, hash, key_equal(), allocator)
+	thin_sherwood_map(std::initializer_list<value_type> il, size_type bucket_count, const hasher & hash, const Allocator & allocator)
+		: thin_sherwood_map(il, bucket_count, hash, key_equal(), allocator)
 	{
 	}
-	sherwood_map(std::initializer_list<value_type> il, size_type bucket_count, const Allocator & allocator)
-		: sherwood_map(il, bucket_count, hasher(), allocator)
+	thin_sherwood_map(std::initializer_list<value_type> il, size_type bucket_count, const Allocator & allocator)
+		: thin_sherwood_map(il, bucket_count, hasher(), allocator)
 	{
 	}
 
@@ -559,19 +560,19 @@ public:
 	template<typename T>
 	const_iterator find(const T & key) const
 	{
-		return const_cast<sherwood_map &>(*this).find(key);
+		return const_cast<thin_sherwood_map &>(*this).find(key);
 	}
 	template<typename T>
 	mapped_type & at(const T & key)
 	{
 		auto found = find(key);
-		if (found == end()) detail::throw_sherwood_map_out_of_range();
-		return found->second;
+		if (found == end()) throw std::out_of_range("the key that you passed to the at() function did not exist  in this map");
+		else return found->second;
 	}
 	template<typename T>
 	const mapped_type & at(const T & key) const
 	{
-		return const_cast<sherwood_map &>(*this).at(key);
+		return const_cast<thin_sherwood_map &>(*this).at(key);
 	}
 	template<typename T>
 	size_type count(const T & key) const
@@ -588,9 +589,9 @@ public:
 	template<typename T>
 	std::pair<const_iterator, const_iterator> equal_range(const T & key) const
 	{
-		return const_cast<sherwood_map &>(*this).equal_range(key);
+		return const_cast<thin_sherwood_map &>(*this).equal_range(key);
 	}
-	void swap(sherwood_map & other)
+	void swap(thin_sherwood_map & other)
 	{
 		using std::swap;
 		entries.swap(other.entries);
@@ -640,7 +641,7 @@ public:
 	{
 		return (allocator_traits::max_size(entries) - sizeof(*this)) / sizeof(Entry);
 	}
-	bool operator==(const sherwood_map & other) const
+	bool operator==(const thin_sherwood_map & other) const
 	{
 		if (size() != other.size()) return false;
 		return std::all_of(begin(), end(), [&other](const value_type & value)
@@ -649,7 +650,7 @@ public:
 			return found != other.end() && *found == value;
 		});
 	}
-	bool operator!=(const sherwood_map & other) const
+	bool operator!=(const thin_sherwood_map & other) const
 	{
 		return !(*this == other);
 	}

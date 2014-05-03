@@ -75,7 +75,7 @@ UNORDERED_AUTO_TEST(map_tests)
     v[2].push_back(std::pair<int const, int>(432,24));
 
 	for(int i = 0; i < 5; ++i)
-		test_equal_insertion<sherwood_map<int, int> >(
+		test_equal_insertion<thin_sherwood_map<int, int> >(
 			v[i].begin(), v[i].end());
 	for(int i = 0; i < 5; ++i)
 		test_equal_insertion<fat_sherwood_map<int, int> >(

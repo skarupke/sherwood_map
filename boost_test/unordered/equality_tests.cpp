@@ -52,7 +52,7 @@ namespace equality_tests
 
 #define UNORDERED_EQUALITY_MAP_TEST(seq1, op, seq2)                         \
 	{                                                                       \
-		sherwood_map<int, int, mod_compare, mod_compare>            \
+		thin_sherwood_map<int, int, mod_compare, mod_compare>            \
 			map1, map2;                                                     \
 		BOOST_PP_SEQ_FOR_EACH(UNORDERED_MAP_INSERT, map1, seq1)             \
 		BOOST_PP_SEQ_FOR_EACH(UNORDERED_MAP_INSERT, map2, seq2)             \

@@ -51,7 +51,8 @@ SOURCES += main.cpp \
     boost_test/unordered/simple_tests.cpp \
     boost_test/unordered/swap_tests.cpp \
     boost_test/unordered/unnecessary_copy_tests.cpp \
-    sherwood_map.cpp
+    finished/sherwood_map.cpp \
+    sherwood_map_test.cpp
 
 HEADERS += \
     boost_test/exception/containers.hpp \
@@ -82,7 +83,9 @@ HEADERS += \
     sherwood_map.hpp \
     sherwood_map_one_array.hpp \
     sherwood_map_two_arrays.hpp \
-    sherwood_map_shared.hpp
+    sherwood_map_shared.hpp \
+    finished/sherwood_map.hpp \
+    sherwood_test.hpp
 
 OTHER_FILES +=
 

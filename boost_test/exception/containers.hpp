@@ -20,13 +20,13 @@ typedef boost::unordered_multiset<
     test::exception::hash,
     test::exception::equal_to,
     test::exception::allocator2<test::exception::object> > test_multiset;
-typedef sherwood_map<
+typedef thin_sherwood_map<
 	test::exception::object,
 	test::exception::object,
 	test::exception::hash,
 	test::exception::equal_to,
 	test::exception::allocator2<test::exception::object> > test_map;
-typedef sherwood_map<
+typedef thin_sherwood_map<
 	test::exception::object,
 	test::exception::object,
 	test::exception::hash,

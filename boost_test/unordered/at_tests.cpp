@@ -16,7 +16,7 @@ namespace at_tests {
 UNORDERED_AUTO_TEST(at_tests) {
 	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Create Map" << std::endl;
 
-	sherwood_map<std::string, int> x;
+	thin_sherwood_map<std::string, int> x;
 	//typedef sherwood_map<std::string, int>::iterator iterator;
 
 	BOOST_LIGHTWEIGHT_TEST_OSTREAM << "Add elements" << std::endl;

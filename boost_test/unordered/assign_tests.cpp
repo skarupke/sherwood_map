@@ -190,21 +190,21 @@ void assign_tests2(T*, test::random_generator generator)
     }
 }
 
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 	test::hash, test::equal_to,
 	std::allocator<test::object> >* test_map_std_alloc;
 fat_sherwood_map<test::object, test::object,
 	test::hash, test::equal_to,
 	std::allocator<test::object> >* test_fat_map_std_alloc;
 
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 	test::hash, test::equal_to,
 	test::allocator2<test::object> >* test_map;
 fat_sherwood_map<test::object, test::object,
 	test::hash, test::equal_to,
 	test::allocator2<test::object> >* test_fat_map;
 
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 		test::hash, test::equal_to,
 		test::cxx11_allocator<test::object, test::propagate_assign> >*
 	test_map_prop_assign;
@@ -213,7 +213,7 @@ fat_sherwood_map<test::object, test::object,
 		test::cxx11_allocator<test::object, test::propagate_assign> >*
 	test_fat_map_prop_assign;
 
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 		test::hash, test::equal_to,
 		test::cxx11_allocator<test::object, test::no_propagate_assign> >*
 	test_map_no_prop_assign;
@@ -252,8 +252,8 @@ UNORDERED_TEST(assign_tests2, (
 
 UNORDERED_AUTO_TEST(assign_default_initializer_list) {
 	std::cerr<<"Initializer List Tests\n";
-	std::initializer_list<typename sherwood_map<int, int>::value_type> init;
-	sherwood_map<int, int> x1;
+	std::initializer_list<typename thin_sherwood_map<int, int>::value_type> init;
+	thin_sherwood_map<int, int> x1;
 	x1[25] = 3;
 	x1[16] = 10;
 	BOOST_TEST(!x1.empty());

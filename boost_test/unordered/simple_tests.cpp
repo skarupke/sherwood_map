@@ -113,7 +113,7 @@ UNORDERED_AUTO_TEST(simple_tests)
     simple_test(multiset);
     
     std::cout<<"Test unordered_map.\n";
-	sherwood_map<int, int> map;
+	thin_sherwood_map<int, int> map;
 
 	for(int i2 = 0; i2 < 1000; ++i2) {
 		map.insert(std::pair<const int, int>(rand(), rand()));

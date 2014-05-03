@@ -5,7 +5,6 @@
 
 namespace detail
 {
-void throw_sherwood_map_out_of_range();
 size_t next_prime(size_t size);
 template<typename Result, typename Functor>
 struct functor_storage : Functor

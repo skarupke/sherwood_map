@@ -1,6 +1,31 @@
-#pragma once
+/*
+This is free and unencumbered software released into the public domain.
 
-#include "sherwood_map_shared.hpp"
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <http://unlicense.org/>
+*/
+
+#pragma once
 
 #include <memory>
 #include <functional>
@@ -9,8 +34,188 @@
 #include <cstddef>
 #include <stdexcept>
 
+namespace detail
+{
+size_t next_prime(size_t size);
+template<typename Result, typename Functor>
+struct functor_storage : Functor
+{
+	functor_storage() = default;
+	functor_storage(const Functor & functor)
+		: Functor(functor)
+	{
+	}
+	template<typename... Args>
+	Result operator()(Args &&... args)
+	{
+		return static_cast<Functor &>(*this)(std::forward<Args>(args)...);
+	}
+	template<typename... Args>
+	Result operator()(Args &&... args) const
+	{
+		return static_cast<const Functor &>(*this)(std::forward<Args>(args)...);
+	}
+};
+template<typename Result, typename... Args>
+struct functor_storage<Result, Result (*)(Args...)>
+{
+	typedef Result (*function_ptr)(Args...);
+	function_ptr function;
+	functor_storage(function_ptr function)
+		: function(function)
+	{
+	}
+	Result operator()(Args... args) const
+	{
+		return function(std::forward<Args>(args)...);
+	}
+	operator function_ptr &()
+	{
+		return function;
+	}
+	operator const function_ptr &()
+	{
+		return function;
+	}
+};
+constexpr size_t empty_hash = 0;
+inline size_t adjust_for_empty_hash(size_t value)
+{
+	return std::max(size_t(1), value);
+}
+template<typename key_type, typename value_type, typename hasher>
+struct KeyOrValueHasher : functor_storage<size_t, hasher>
+{
+	typedef functor_storage<size_t, hasher> hasher_storage;
+	KeyOrValueHasher(const hasher & hash)
+		: hasher_storage(hash)
+	{
+	}
+	size_t operator()(const key_type & key)
+	{
+		return adjust_for_empty_hash(static_cast<hasher_storage &>(*this)(key));
+	}
+	size_t operator()(const key_type & key) const
+	{
+		return adjust_for_empty_hash(static_cast<const hasher_storage &>(*this)(key));
+	}
+	size_t operator()(const value_type & value)
+	{
+		return adjust_for_empty_hash(static_cast<hasher_storage &>(*this)(value.first));
+	}
+	size_t operator()(const value_type & value) const
+	{
+		return adjust_for_empty_hash(static_cast<const hasher_storage &>(*this)(value.first));
+	}
+	template<typename F, typename S>
+	size_t operator()(const std::pair<F, S> & value)
+	{
+		return adjust_for_empty_hash(static_cast<hasher_storage &>(*this)(value.first));
+	}
+	template<typename F, typename S>
+	size_t operator()(const std::pair<F, S> & value) const
+	{
+		return adjust_for_empty_hash(static_cast<const hasher_storage &>(*this)(value.first));
+	}
+};
+template<typename key_type, typename value_type, typename key_equal>
+struct KeyOrValueEquality : functor_storage<bool, key_equal>
+{
+	typedef functor_storage<bool, key_equal> equality_storage;
+	KeyOrValueEquality(const key_equal & equality)
+		: equality_storage(equality)
+	{
+	}
+	bool operator()(const key_type & lhs, const key_type & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs, rhs);
+	}
+	bool operator()(const key_type & lhs, const value_type & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs, rhs.first);
+	}
+	bool operator()(const value_type & lhs, const key_type & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs.first, rhs);
+	}
+	bool operator()(const value_type & lhs, const value_type & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs.first, rhs.first);
+	}
+	template<typename F, typename S>
+	bool operator()(const key_type & lhs, const std::pair<F, S> & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs, rhs.first);
+	}
+	template<typename F, typename S>
+	bool operator()(const std::pair<F, S> & lhs, const key_type & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs.first, rhs);
+	}
+	template<typename F, typename S>
+	bool operator()(const value_type & lhs, const std::pair<F, S> & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs.first, rhs.first);
+	}
+	template<typename F, typename S>
+	bool operator()(const std::pair<F, S> & lhs, const value_type & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs.first, rhs.first);
+	}
+	template<typename FL, typename SL, typename FR, typename SR>
+	bool operator()(const std::pair<FL, SL> & lhs, const std::pair<FR, SR> & rhs)
+	{
+		return static_cast<equality_storage &>(*this)(lhs.first, rhs.first);
+	}
+};
+template<typename T>
+struct lazily_defauly_construct
+{
+	operator T() const
+	{
+		return T();
+	}
+};
+template<typename It>
+struct WrappingIterator : std::iterator<std::forward_iterator_tag, void, ptrdiff_t, void, void>
+{
+	WrappingIterator(It it, It begin, It end)
+		: it(it), begin(begin), end(end)
+	{
+	}
+	WrappingIterator & operator++()
+	{
+		if (++it == end)
+			it = begin;
+		return *this;
+	}
+	WrappingIterator operator++(int)
+	{
+		WrappingIterator copy(*this);
+		++*this;
+		return copy;
+	}
+	bool operator==(const WrappingIterator & other) const
+	{
+		return it == other.it;
+	}
+	bool operator!=(const WrappingIterator & other) const
+	{
+		return !(*this == other);
+	}
+
+	It it;
+	It begin;
+	It end;
+};
+inline size_t required_capacity(size_t size, float load_factor)
+{
+	return std::ceil(size / load_factor);
+}
+}
+
 template<typename Key, typename Value, typename Hash = std::hash<Key>, typename Equality = std::equal_to<Key>, typename Allocator = std::allocator<std::pair<Key, Value> > >
-class fat_sherwood_map
+class sherwood_map
 {
 public:
 	typedef Key key_type;
@@ -101,7 +306,7 @@ private:
 		}
 
 	private:
-		friend class fat_sherwood_map;
+		friend class sherwood_map;
 		HashIt hash_it;
 		HashIt hash_end;
 		ValueIt value_it;
@@ -189,7 +394,7 @@ private:
 				: hash_it(hash_it), value_it(value_it)
 			{
 			}
-			storage_iterator(typename fat_sherwood_map::iterator it)
+			storage_iterator(typename sherwood_map::iterator it)
 				: hash_it(it.hash_it), value_it(it.value_it)
 			{
 			}
@@ -481,7 +686,7 @@ private:
 		template<typename First>
 		std::pair<const_iterator, FindResult> find_hash(size_type hash, const First & first) const
 		{
-			return const_cast<fat_sherwood_map &>(*this).find_hash(hash, first);
+			return const_cast<sherwood_map &>(*this).find_hash(hash, first);
 		}
 
 		value_pointer value_begin;
@@ -497,83 +702,83 @@ private:
 	};
 
 public:
-	fat_sherwood_map() = default;
-	fat_sherwood_map(const fat_sherwood_map & other)
-		: fat_sherwood_map(other, std::allocator_traits<Allocator>::select_on_container_copy_construction(other.get_allocator()))
+	sherwood_map() = default;
+	sherwood_map(const sherwood_map & other)
+		: sherwood_map(other, std::allocator_traits<Allocator>::select_on_container_copy_construction(other.get_allocator()))
 	{
 	}
-	fat_sherwood_map(const fat_sherwood_map & other, const Allocator & alloc)
+	sherwood_map(const sherwood_map & other, const Allocator & alloc)
 		: entries(other.entries, alloc), _max_load_factor(other._max_load_factor)
 	{
 		insert(other.begin(), other.end());
 	}
-	fat_sherwood_map(fat_sherwood_map && other) noexcept(std::is_nothrow_move_constructible<StorageType>::value)
+	sherwood_map(sherwood_map && other) noexcept(std::is_nothrow_move_constructible<StorageType>::value)
 		: entries(std::move(other.entries))
 		, _size(other._size)
 		, _max_load_factor(other._max_load_factor)
 	{
 		other._size = 0;
 	}
-	fat_sherwood_map(fat_sherwood_map && other, const Allocator & alloc)
+	sherwood_map(sherwood_map && other, const Allocator & alloc)
 		: entries(std::move(other.entries), alloc)
 		, _size(other._size)
 		, _max_load_factor(other._max_load_factor)
 	{
 		other._size = 0;
 	}
-	fat_sherwood_map & operator=(const fat_sherwood_map & other)
+	sherwood_map & operator=(const sherwood_map & other)
 	{
-		fat_sherwood_map(other).swap(*this);
+		sherwood_map(other).swap(*this);
 		return *this;
 	}
-	fat_sherwood_map & operator=(fat_sherwood_map && other) = default;
-	fat_sherwood_map & operator=(std::initializer_list<value_type> il)
+	sherwood_map & operator=(sherwood_map && other) = default;
+	sherwood_map & operator=(std::initializer_list<value_type> il)
 	{
-		fat_sherwood_map(il).swap(*this);
+		sherwood_map(il).swap(*this);
 		return *this;
 	}
-	explicit fat_sherwood_map(size_t bucket_count, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
+	explicit sherwood_map(size_t bucket_count, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
 		: entries(bucket_count, hash, equality, allocator)
 	{
 	}
-	explicit fat_sherwood_map(const Allocator & allocator)
-		: fat_sherwood_map(0, allocator)
+	explicit sherwood_map(const Allocator & allocator)
+		: sherwood_map(0, allocator)
 	{
 	}
-	explicit fat_sherwood_map(size_t bucket_count, const Allocator & allocator)
-		: fat_sherwood_map(bucket_count, hasher(), allocator)
+	explicit sherwood_map(size_t bucket_count, const Allocator & allocator)
+		: sherwood_map(bucket_count, hasher(), allocator)
 	{
 	}
-	fat_sherwood_map(size_t bucket_count, const hasher & hash, const Allocator & allocator)
-		: fat_sherwood_map(bucket_count, hash, key_equal(), allocator)
+	sherwood_map(size_t bucket_count, const hasher & hash, const Allocator & allocator)
+		: sherwood_map(bucket_count, hash, key_equal(), allocator)
 	{
 	}
 	template<typename It>
-	fat_sherwood_map(It begin, It end, size_t bucket_count = 0, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
+	sherwood_map(It begin, It end, size_t bucket_count = 0, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
 		: entries(bucket_count, hash, equality, allocator)
 	{
 		insert(begin, end);
 	}
 	template<typename It>
-	fat_sherwood_map(It begin, It end, size_t bucket_count, const Allocator & allocator)
-		: fat_sherwood_map(begin, end, bucket_count, hasher(), allocator)
+	sherwood_map(It begin, It end, size_t bucket_count, const Allocator & allocator)
+		: sherwood_map(begin, end, bucket_count, hasher(), allocator)
 	{
 	}
 	template<typename It>
-	fat_sherwood_map(It begin, It end, size_t bucket_count, const hasher & hash, const Allocator & allocator)
-		: fat_sherwood_map(begin, end, bucket_count, hash, key_equal(), allocator)
+	sherwood_map(It begin, It end, size_t bucket_count, const hasher & hash, const Allocator & allocator)
+		: sherwood_map(begin, end, bucket_count, hash, key_equal(), allocator)
 	{
 	}
-	fat_sherwood_map(std::initializer_list<value_type> il, size_type bucket_count = 0, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
-		: fat_sherwood_map(il.begin(), il.end(), bucket_count, hash, equality, allocator)
+	sherwood_map(std::initializer_list<value_type> il, size_type bucket_count = 0, const hasher & hash = hasher(), const key_equal & equality = key_equal(), const Allocator & allocator = Allocator())
+		: sherwood_map(il.begin(), il.end(), bucket_count, hash, equality, allocator)
 	{
 	}
-	fat_sherwood_map(std::initializer_list<value_type> il, size_type bucket_count, const hasher & hash, const Allocator & allocator)
-		: fat_sherwood_map(il, bucket_count, hash, key_equal(), allocator)
+	sherwood_map(std::initializer_list<value_type> il, size_type bucket_count, const hasher & hash, const Allocator & allocator)
+		: sherwood_map(il, bucket_count, hash, key_equal(), allocator)
 	{
 	}
-	fat_sherwood_map(std::initializer_list<value_type> il, size_type bucket_count, const Allocator & allocator)
-		: fat_sherwood_map(il, bucket_count, hasher(), allocator)
+	sherwood_map(std::initializer_list<value_type> il, size_type bucket_count, const Allocator & allocator)
+		: sherwood_map(il, bucket_count, hasher(), allocator)
 	{
 	}
 
@@ -730,7 +935,7 @@ public:
 	template<typename T>
 	const_iterator find(const T & key) const
 	{
-		return const_cast<fat_sherwood_map &>(*this).find(key);
+		return const_cast<sherwood_map &>(*this).find(key);
 	}
 	template<typename T>
 	mapped_type & at(const T & key)
@@ -742,7 +947,7 @@ public:
 	template<typename T>
 	const mapped_type & at(const T & key) const
 	{
-		return const_cast<fat_sherwood_map &>(*this).at(key);
+		return const_cast<sherwood_map &>(*this).at(key);
 	}
 	template<typename T>
 	size_type count(const T & key) const
@@ -759,9 +964,9 @@ public:
 	template<typename T>
 	std::pair<const_iterator, const_iterator> equal_range(const T & key) const
 	{
-		return const_cast<fat_sherwood_map &>(*this).equal_range(key);
+		return const_cast<sherwood_map &>(*this).equal_range(key);
 	}
-	void swap(fat_sherwood_map & other)
+	void swap(sherwood_map & other)
 	{
 		using std::swap;
 		entries.swap(other.entries);
@@ -786,7 +991,7 @@ public:
 		}
 		else
 		{
-			throw std::runtime_error("invalid value for max_load_factor(). fat_sherwood_map only supports load factors in the range [0.01 .. 1]");
+			throw std::runtime_error("invalid value for max_load_factor(). sherwood_map only supports load factors in the range [0.01 .. 1]");
 		}
 	}
 	void reserve(size_type count)
@@ -811,7 +1016,7 @@ public:
 	{
 		return (value_allocator_traits::max_size(entries) - sizeof(*this)) / (sizeof(size_t) + sizeof(value_type));
 	}
-	bool operator==(const fat_sherwood_map & other) const
+	bool operator==(const sherwood_map & other) const
 	{
 		if (size() != other.size()) return false;
 		return std::all_of(begin(), end(), [&other](const value_type & value)
@@ -820,7 +1025,7 @@ public:
 			return found != other.end() && *found == value;
 		});
 	}
-	bool operator!=(const fat_sherwood_map & other) const
+	bool operator!=(const sherwood_map & other) const
 	{
 		return !(*this == other);
 	}

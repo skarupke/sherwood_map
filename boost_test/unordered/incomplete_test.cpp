@@ -27,9 +27,9 @@ namespace incomplete_test
 
     // Declare some instances
     
-	typedef sherwood_map<value, value, hash, equals,
+	typedef thin_sherwood_map<value, value, hash, equals,
 		allocator<std::pair<value const, value> > > map;
-	typedef sherwood_map<value, value, hash, equals,
+	typedef fat_sherwood_map<value, value, hash, equals,
 		allocator<std::pair<value const, value> > > fat_map;
 	typedef boost::unordered_multimap<value, value, hash, equals,
         allocator<std::pair<value const, value> > > multimap;
@@ -74,7 +74,7 @@ namespace incomplete_test
     // moment.
     
 	struct struct1 {
-		sherwood_map<struct1, struct1, hash, equals,
+		thin_sherwood_map<struct1, struct1, hash, equals,
 			allocator<std::pair<struct1 const, struct1> > > x;
 	};
 	struct fstruct1 {

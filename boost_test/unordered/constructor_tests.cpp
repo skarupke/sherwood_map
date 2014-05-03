@@ -400,7 +400,7 @@ void map_constructor_test(T*, test::random_generator const& generator)
     test::check_equivalent_keys(x);
 }
 
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 	test::hash, test::equal_to,
 	std::allocator<test::object> >* test_map_std_alloc;
 fat_sherwood_map<test::object, test::object,
@@ -413,7 +413,7 @@ boost::unordered_set<test::object,
 boost::unordered_multiset<test::object,
     test::hash, test::equal_to,
     test::allocator2<test::object> >* test_multiset;
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 	test::hash, test::equal_to,
 	test::allocator2<test::object> >* test_map;
 fat_sherwood_map<test::object, test::object,

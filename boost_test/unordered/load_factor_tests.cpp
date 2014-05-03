@@ -74,7 +74,7 @@ void load_factor_insert_tests(X* ptr, test::random_generator generator)
 
 //boost::unordered_set<int>* int_set_ptr;
 //boost::unordered_multiset<int>* int_multiset_ptr;
-sherwood_map<int, int>* int_map_ptr;
+thin_sherwood_map<int, int>* int_map_ptr;
 fat_sherwood_map<int, int>* int_fat_map_ptr;
 //boost::unordered_multimap<int, int>* int_multimap_ptr;
 

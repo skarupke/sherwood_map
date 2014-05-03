@@ -145,7 +145,7 @@ boost::unordered_set<test::object,
 boost::unordered_multiset<test::object,
     test::hash, test::equal_to,
     test::allocator1<test::object> >* test_multiset;
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 	test::hash, test::equal_to,
 	test::allocator2<test::object> >* test_map;
 fat_sherwood_map<test::object, test::object,

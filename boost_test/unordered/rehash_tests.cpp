@@ -204,7 +204,7 @@ boost::unordered_set<int>* int_set_ptr;
 boost::unordered_multiset<test::object,
     test::hash, test::equal_to,
     test::allocator2<test::object> >* test_multiset_ptr;
-sherwood_map<test::movable, test::movable,
+thin_sherwood_map<test::movable, test::movable,
 	test::hash, test::equal_to,
 	test::allocator2<test::movable> >* test_map_ptr;
 fat_sherwood_map<test::movable, test::movable,

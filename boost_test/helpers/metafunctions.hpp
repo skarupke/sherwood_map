@@ -31,7 +31,7 @@ namespace test
         BOOST_STATIC_CONSTANT(bool, value = true);
     };
 	template <class K, class M, class H, class P, class A>
-	struct has_unique_keys<sherwood_map<K, M, H, P, A> >
+	struct has_unique_keys<thin_sherwood_map<K, M, H, P, A> >
 	{
 		BOOST_STATIC_CONSTANT(bool, value = true);
 	};

@@ -327,7 +327,7 @@ namespace move_tests
         }
     }
 
-	sherwood_map<test::object, test::object,
+	thin_sherwood_map<test::object, test::object,
 		test::hash, test::equal_to,
 		std::allocator<test::object> >* test_map_std_alloc;
 	fat_sherwood_map<test::object, test::object,
@@ -340,7 +340,7 @@ namespace move_tests
     boost::unordered_multiset<test::object,
         test::hash, test::equal_to,
         test::allocator1<test::object> >* test_multiset;
-	sherwood_map<test::object, test::object,
+	thin_sherwood_map<test::object, test::object,
 		test::hash, test::equal_to,
 		test::allocator1<test::object> >* test_map;
 	fat_sherwood_map<test::object, test::object,
@@ -358,7 +358,7 @@ boost::unordered_multiset<test::object,
         test::hash, test::equal_to,
         test::cxx11_allocator<test::object, test::propagate_move> >*
     test_multiset_prop_move;
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 		test::hash, test::equal_to,
 		test::cxx11_allocator<test::object, test::propagate_move> >*
 	test_map_prop_move;
@@ -379,7 +379,7 @@ boost::unordered_multiset<test::object,
         test::hash, test::equal_to,
         test::cxx11_allocator<test::object, test::no_propagate_move> >*
     test_multiset_no_prop_move;
-sherwood_map<test::object, test::object,
+thin_sherwood_map<test::object, test::object,
 		test::hash, test::equal_to,
 		test::cxx11_allocator<test::object, test::no_propagate_move> >*
 	test_map_no_prop_move;

@@ -496,7 +496,7 @@ void map_insert_range_test2(X*, test::random_generator generator)
         std::pair<BOOST_DEDUCED_TYPENAME X::key_type const, test::implicitly_convertible>
     > list;
     test::random_values<
-		sherwood_map<BOOST_DEDUCED_TYPENAME X::key_type, test::implicitly_convertible, test::hash, test::equal_to>
+		thin_sherwood_map<BOOST_DEDUCED_TYPENAME X::key_type, test::implicitly_convertible, test::hash, test::equal_to>
     > v(1000, generator);
     list l(v.begin(), v.end());
 
@@ -518,7 +518,7 @@ boost::unordered_set<test::object,
 boost::unordered_multiset<test::movable,
     test::hash, test::equal_to,
     test::allocator2<test::movable> >* test_multiset;
-sherwood_map<test::movable, test::movable,
+thin_sherwood_map<test::movable, test::movable,
 	test::hash, test::equal_to,
 	test::allocator2<test::movable> >* test_map;
 fat_sherwood_map<test::movable, test::movable,
@@ -651,7 +651,7 @@ UNORDERED_AUTO_TEST(insert_initializer_list_multiset)
 
 UNORDERED_AUTO_TEST(insert_initializer_list_map)
 {
-	sherwood_map<std::string, std::string> map;
+	thin_sherwood_map<std::string, std::string> map;
 	map.insert({});
 	BOOST_TEST(map.empty());
 	map.insert({{"a", "b"},{"a", "b"},{"d", ""}});
@@ -717,7 +717,7 @@ namespace insert_tests
 {
 UNORDERED_AUTO_TEST(map_emplace_test)
 {
-	sherwood_map<int, overloaded_constructor> x;
+	thin_sherwood_map<int, overloaded_constructor> x;
 
 #if !BOOST_WORKAROUND(__SUNPRO_CC, BOOST_TESTED_AT(0x5100))
 	x.emplace();

@@ -11,7 +11,7 @@
 #include "sherwood_map.hpp"
 
 void foo(boost::unordered_set<int>&,
-		sherwood_map<int, int>&,
+		thin_sherwood_map<int, int>&,
 		fat_sherwood_map<int, int>&,
         boost::unordered_multiset<int>&,
         boost::unordered_multimap<int, int>&);
@@ -19,7 +19,7 @@ void foo(boost::unordered_set<int>&,
 TEST(boost_tests, link_test_1)
 {
     boost::unordered_set<int> x1;
-	sherwood_map<int, int> x2;
+	thin_sherwood_map<int, int> x2;
 	fat_sherwood_map<int, int> fx2;
 	boost::unordered_multiset<int> x3;
     boost::unordered_multimap<int, int> x4;

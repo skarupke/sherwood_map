@@ -184,7 +184,7 @@ namespace unnecessary_copy_tests
 
     boost::unordered_set<count_copies>* set;
     boost::unordered_multiset<count_copies>* multiset;
-	sherwood_map<int, count_copies>* map;
+	thin_sherwood_map<int, count_copies>* map;
 	fat_sherwood_map<int, count_copies>* fat_map;
 	boost::unordered_multimap<int, count_copies>* multimap;
 
@@ -373,7 +373,7 @@ namespace unnecessary_copy_tests
 		//
 
 		reset();
-		sherwood_map<count_copies, count_copies> x;
+		thin_sherwood_map<count_copies, count_copies> x;
 		// TODO: Run tests for pairs without const etc.
 		std::pair<count_copies const, count_copies> a;
 		x.emplace(a);
