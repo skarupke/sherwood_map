@@ -28,7 +28,7 @@ struct insert_performance
 		std::uniform_int_distribution<int> distribution(0, std::numeric_limits<int>::max());
 		for (int i = 0; i < amount; ++i)
 		{
-			hash_map[i] = distribution(engine);
+			hash_map[distribution(engine)] = i;
 		}
 		return hash_map;
 	}
@@ -46,7 +46,7 @@ struct insert_performance_reserve
 		std::uniform_int_distribution<int> distribution(0, std::numeric_limits<int>::max());
 		for (int i = 0; i < amount; ++i)
 		{
-			hash_map[i] = distribution(engine);
+			hash_map[distribution(engine)] = i;
 		}
 		if (hash_map.bucket_count() != bucket_count)
 		{
@@ -143,7 +143,7 @@ struct performance_lookups
 		return hash_map;
 	}
 };
-constexpr int profile_amount = 1000000;
+constexpr int profile_amount = 10000;
 struct LargeStruct
 {
 	LargeStruct()
@@ -224,7 +224,7 @@ void profile(const char * name, int amount, int seed, float load_factor)
 }
 constexpr int profile_repetition_count = 10;
 static float profile_load_factor = thin_sherwood_map<int, int>().max_load_factor();
-TEST(sherwood_map, profile_insertion)
+TEST(sherwood_map, DISABLED_profile_insertion)
 {
 	for (int i = 0; i < profile_repetition_count; ++i) profile<insert_performance>("insert", profile_amount, 5, profile_load_factor);
 }
@@ -232,15 +232,15 @@ TEST(sherwood_map, profile_insertion_reserve)
 {
 	for (int i = 0; i < profile_repetition_count; ++i) profile<insert_performance_reserve>("insert_reserve", profile_amount, 5, profile_load_factor);
 }
-TEST(sherwood_map, profile_modify)
+TEST(sherwood_map, DISABLED_profile_modify)
 {
 	for (int i = 0; i < profile_repetition_count; ++i) profile<modify_performance>("modify", profile_amount / 2, 6, profile_load_factor);
 }
-TEST(sherwood_map, profile_lookup)
+TEST(sherwood_map, DISABLED_profile_lookup)
 {
 	for (int i = 0; i < profile_repetition_count; ++i) profile<performance_lookups>("lookups", profile_amount / 5, 7, profile_load_factor);
 }
-TEST(sherwood_map, profile_erase)
+TEST(sherwood_map, DISABLED_profile_erase)
 {
 	for (int i = 0; i < profile_repetition_count; ++i) profile<erase_performance>("erase", profile_amount / 2, 8, profile_load_factor);
 }

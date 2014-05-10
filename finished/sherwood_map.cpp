@@ -88,6 +88,18 @@ size_t next_prime(size_t size)
 	if (result == small_end) return *std::lower_bound(small_end, std::end(prime_list), size);
 	else return *result;
 }
+std::invalid_argument invalid_max_load_factor()
+{
+	return std::invalid_argument("invalid value for max_load_factor(). sherwood_map only supports load factors in the range [0.01 .. 1]");
+}
+std::logic_error invalid_code_in_emplace()
+{
+	return std::logic_error("should be impossible to get here because I already handled the FoundEqual case at the beginning of the function");
+}
+std::out_of_range at_out_of_range()
+{
+	return std::out_of_range("the key that you passed to the at() function did not exist  in this map");
+}
 }
 
 #ifndef DISABLE_GTEST

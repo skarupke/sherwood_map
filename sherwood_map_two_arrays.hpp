@@ -448,7 +448,7 @@ private:
 		{
 			FoundEmpty,
 			FoundEqual,
-			FoundNotEqual
+			FoundNotEqual0
 		};
 
 		template<typename First>
@@ -458,7 +458,7 @@ private:
 			if (!capacity_copy)
 			{
 				iterator end{ this->hash_end, value_end() };
-				return { end, FoundNotEqual };
+				return { end, FoundNotEqual0 };
 			}
 			WrapAroundIt it{initial_bucket(hash, capacity_copy), begin(), end()};
 			size_t current_hash = *it.it.hash_it;
@@ -475,7 +475,7 @@ private:
 				if (current_hash == hash && static_cast<KeyOrValueEquality &>(*this)(it.it.value_it->first, first))
 					return { it.it, FoundEqual };
 				if (distance_to_initial_bucket(it.it.hash_it, current_hash, capacity_copy) < distance)
-					return { it.it, FoundNotEqual };
+					return { it.it, FindResult(FoundNotEqual0 + distance) };
 			}
 		}
 		template<typename First>
@@ -647,16 +647,16 @@ public:
 			init_empty(entries, found.first.hash_it, found.first.value_it, hash, std::forward<First>(first), std::forward<Args>(args)...);
 			++_size;
 			return { { found.first.hash_it, entries.hash_end, found.first.value_it }, true };
-		case StorageType::FoundNotEqual:
+		default:
 			value_type new_value(std::forward<First>(first), std::forward<Args>(args)...);
-			size_t capacity = entries.capacity();
 			size_t & current_hash = *found.first.hash_it;
 			value_type & current_value = *found.first.value_it;
 			typename StorageType::WrapAroundIt next{found.first, entries.begin(), entries.end()};
 			++next;
 			if (*next.it.hash_it != detail::empty_hash)
 			{
-				size_t distance = entries.distance_to_initial_bucket(found.first.hash_it, current_hash, capacity) + 1;
+				size_t capacity = entries.capacity();
+				size_t distance = found.second - StorageType::FoundNotEqual0;//entries.distance_to_initial_bucket(found.first.hash_it, current_hash, capacity) + 1;
 				do
 				{
 					size_t next_distance = entries.distance_to_initial_bucket(next.it.hash_it, *next.it.hash_it, capacity);
@@ -676,7 +676,6 @@ public:
 			++_size;
 			return { { found.first.hash_it, entries.hash_end, found.first.value_it }, true };
 		}
-		throw std::runtime_error("Forgot to handle a case in the switch statement above");
 	}
 	std::pair<iterator, bool> emplace()
 	{
@@ -839,7 +838,7 @@ public:
 	}
 
 private:
-	void grow()
+	void grow() __attribute__((noinline))
 	{
 		reallocate(detail::next_prime(std::max(detail::required_capacity(_size + 1, _max_load_factor), entries.capacity() * 2)));
 	}

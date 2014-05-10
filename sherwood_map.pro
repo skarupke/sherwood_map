@@ -52,7 +52,10 @@ SOURCES += main.cpp \
     boost_test/unordered/swap_tests.cpp \
     boost_test/unordered/unnecessary_copy_tests.cpp \
     finished/sherwood_map.cpp \
-    sherwood_map_test.cpp
+    sherwood_map_test.cpp \
+    profiling/unique_running_insertion.cpp \
+    profiling/unique_scattered_erasure.cpp \
+    profiling/unique_scattered_lookup.cpp
 
 HEADERS += \
     boost_test/exception/containers.hpp \
@@ -85,7 +88,8 @@ HEADERS += \
     sherwood_map_two_arrays.hpp \
     sherwood_map_shared.hpp \
     finished/sherwood_map.hpp \
-    sherwood_test.hpp
+    sherwood_test.hpp \
+    profiling/profile_shared.h
 
 OTHER_FILES +=
 

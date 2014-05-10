@@ -480,12 +480,12 @@ public:
 			// create the object to insert early so that if it throws, nothing bad has happened
 			// after this I assume noexcept moves
 			value_type to_insert(std::forward<First>(first), std::forward<Args>(args)...);
-			size_t capacity = entries.capacity();
 			Entry & current = *found.first;
 			typename StorageType::WrapAroundIt next{found.first, entries.begin(), entries.end()};
 			++next;
 			if (next.it->hash != detail::empty_hash)
 			{
+				size_t capacity = entries.capacity();
 				size_t distance = entries.distance_to_initial_bucket(found.first, current.hash, capacity) + 1;
 				do
 				{
