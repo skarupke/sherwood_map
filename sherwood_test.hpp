@@ -48,6 +48,19 @@ TYPED_TEST_P(sherwood_test, simple)
 
 	ASSERT_EQ((map_type{ { 1, 5 }, { 2, 6 }, { 3, 7 }, { 4, 0 } }), a);
 }
+TYPED_TEST_P(sherwood_test, conflicting_insert)
+{
+	typedef typename TypeParam::template map<int, int> map_type;
+	map_type a;
+	a.max_load_factor(1.0f);
+	a.reserve(5);
+	a.insert({ { 1, 2 }, { 6, 5 }, { 11, 8 }, { 16, 11 } });
+	ASSERT_EQ(2, a[1]);
+	ASSERT_EQ(5, a[6]);
+	ASSERT_EQ(8, a[11]);
+	ASSERT_EQ(11, a[16]);
+}
+
 TYPED_TEST_P(sherwood_test, move_construct)
 {
 	typedef typename TypeParam::template map<std::string, std::unique_ptr<int> > map_type;
@@ -101,16 +114,24 @@ TYPED_TEST_P(sherwood_test, conflicting_iterator_erase)
 	typedef typename TypeParam::template map<int, int, IdentityHasher> map_type;
 	map_type a;
 	a.max_load_factor(1.0f);
-	a.reserve(5);
-	a.insert({ { 1, 2 }, { 6, 5 }, { 11, 8 }, { 16, 11 } });
+	size_t count = 5;
+	a.reserve(count);
+	count = a.bucket_count();
+	a.insert(
+	{
+		{ 0 * count + 1, 2 },
+		{ 1 * count + 1, 5 },
+		{ 2 * count + 1, 8 },
+		{ 3 * count + 1, 11 }
+	});
 	auto begin = a.erase(a.begin(), std::next(a.begin(), 2));
 	ASSERT_EQ(a.begin(), begin);
 	ASSERT_EQ(*a.begin(), *begin);
-	ASSERT_EQ((map_type{ { 11, 8 }, { 16, 11 } }), a);
+	ASSERT_EQ((map_type{ { 2 * count + 1, 8 }, { 3 * count + 1, 11 } }), a);
 	begin = a.erase(a.begin());
 	ASSERT_EQ(a.begin(), begin);
 	ASSERT_EQ(*a.begin(), *begin);
-	ASSERT_EQ((map_type{ { 16, 11 } }), a);
+	ASSERT_EQ((map_type{ { 3 * count + 1, 11 } }), a);
 	begin = a.erase(a.begin());
 	ASSERT_EQ(a.end(), begin);
 	ASSERT_TRUE(a.empty());
@@ -120,12 +141,21 @@ TYPED_TEST_P(sherwood_test, two_conflicting_iterator_erase)
 	typedef typename TypeParam::template map<int, int, IdentityHasher> map_type;
 	map_type a;
 	a.max_load_factor(1.0f);
-	a.reserve(5);
-	a.insert({ { 1, 2 }, { 6, 5 }, { 4, 8 }, { 9, 11 }, { 14, 14 } });
+	size_t count = 5;
+	a.reserve(count);
+	count = a.bucket_count();
+	a.insert(
+	{
+		{ 0 * count + 1, 2 },
+		{ 1 * count + 1, 5 },
+		{ 1 * count - 1, 8 },
+		{ 2 * count - 1, 11 },
+		{ 3 * count - 1, 14 }
+	});
 	auto begin = a.erase(a.begin());
 	ASSERT_EQ(a.begin(), begin);
 	ASSERT_EQ(a.begin(), a.find(a.begin()->first));
-	ASSERT_EQ((map_type{ { 1, 2 }, { 6, 5 }, { 4, 8 }, { 14, 14 } }), a);
+	ASSERT_EQ((map_type{ { 0 * count + 1, 2 }, { 1 * count + 1, 5 }, { 1 * count - 1, 8 }, { 3 * count - 1, 14 } }), a);
 }
 
 TYPED_TEST_P(sherwood_test, conflicting_iterator_erase_middle)
@@ -133,24 +163,28 @@ TYPED_TEST_P(sherwood_test, conflicting_iterator_erase_middle)
 	typedef typename TypeParam::template map<int, int, IdentityHasher> map_type;
 	map_type a;
 	a.max_load_factor(1.0f);
-	a.reserve(5);
-	a.insert({ { 1, 2 }, { 6, 5 }, { 11, 8 }, { 16, 11 } });
+	size_t count = 5;
+	a.reserve(count);
+	count = a.bucket_count();
+	a.insert({ { 0 * count + 1, 2 }, { 1 * count + 1, 5 }, { 2 * count + 1, 8 }, { 3 * count + 1, 11 } });
 	a.erase(std::next(a.begin()));
-	ASSERT_EQ((map_type{ { 1, 2 }, { 11, 8 }, { 16, 11 } }), a);
+	ASSERT_EQ((map_type{ { 0 * count + 1, 2 }, { 2 * count + 1, 8 }, { 3 * count + 1, 11 } }), a);
 }
 TYPED_TEST_P(sherwood_test, erase_conflicting_with_non_conflicting)
 {
 	typedef typename TypeParam::template map<int, int, IdentityHasher> map_type;
 	map_type a;
 	a.max_load_factor(1.0f);
-	a.rehash(5);
+	size_t count = 5;
+	a.rehash(count);
+	count = a.bucket_count();
 	// the idea is this: you will end up with elements in this
 	// order as they are here. then we erase the first two.
 	// element 11 has to move over by two, element 3 only has to
 	// move over by one
-	a.insert({ { 1, 2 }, { 6, 5 }, { 11, 8 }, { 3, 9 } });
+	a.insert({ { 0 * count + 1, 2 }, { 1 * count + 1, 5 }, { 2 * count + 1, 8 }, { 0 * count + 3, 9 } });
 	a.erase(a.begin(), std::next(a.begin(), 2));
-	ASSERT_EQ((map_type{ { 3, 9 }, { 11, 8 } }), a);
+	ASSERT_EQ((map_type{ { 0 * count + 3, 9 }, { 2 * count + 1, 8 } }), a);
 }
 TYPED_TEST_P(sherwood_test, range_erase)
 {
@@ -177,13 +211,100 @@ TYPED_TEST_P(sherwood_test, move_over_please)
 	typedef typename TypeParam::template map<int, int, IdentityHasher> map_type;
 	map_type a;
 	a.max_load_factor(1.0f);
-	a.rehash(5);
+	size_t count = 5;
+	a.rehash(count);
+	count = a.bucket_count();
 	// the idea is this: 1 and 2 go to their spots. 5 goes to 0,
 	// 10 can't go to 0 so goes to 1 and pushes 1 and 2 over,
 	// 15 does the same thing
-	a.insert({ { 1, 5 }, { 2, 6 }, { 5, 7 }, { 10, 8 }, { 15, 9 } });
-	ASSERT_EQ((map_type{ { 1, 5 }, { 2, 6 }, { 5, 7 }, { 10, 8 }, { 15, 9 } }), a);
+	a.insert(
+	{
+		{ 0 * count + 1, 5 },
+		{ 0 * count + 2, 6 },
+		{ 1 * count + 0, 7 },
+		{ 2 * count + 0, 8 },
+		{ 3 * count + 0, 9 }
+	});
+	ASSERT_EQ((map_type{ { 0 * count + 1, 5 }, { 0 * count + 2, 6 }, { 1 * count + 0, 7 }, { 2 * count + 0, 8 }, { 3 * count + 0, 9 } }), a);
 }
+TYPED_TEST_P(sherwood_test, move_over_distance)
+{
+	typedef typename TypeParam::template map<int, int, IdentityHasher> map_type;
+	map_type a;
+	a.max_load_factor(1.0f);
+	size_t count = 7;
+	a.rehash(count);
+	count = a.bucket_count();
+	// the idea is this: 1 and 2 go to their spots. 7 goes to 0,
+	// 14 can't go to 0 so goes to 1 and pushes 1 and 2 over,
+	// now I've had a bug where the distance of element 2 was now
+	// incorrect, so I place an object at 3 and it will push
+	// 2 out of the way
+	a.insert(
+	{
+		{ 0 * count + 1, 5 },
+		{ 0 * count + 2, 6 },
+		{ 1 * count + 0, 7 },
+		{ 2 * count + 0, 8 },
+		{ 3 * count + 0, 9 },
+		{ 0 * count + 3, 10 }
+	});
+	ASSERT_EQ((map_type{ { 0 * count + 1, 5 }, { 0 * count + 2, 6 }, { 1 * count + 0, 7 }, { 2 * count + 0, 8 }, { 3 * count + 0, 9 }, { 0 * count + 3, 10 } }), a);
+}
+TYPED_TEST_P(sherwood_test, many_collisions)
+{
+	typedef typename TypeParam::template map<int, int, IdentityHasher> map_type;
+	map_type a;
+	a.max_load_factor(1.0f);
+	size_t count = 11;
+	a.rehash(count);
+	count = a.bucket_count();
+	std::initializer_list<std::pair<int, int> > il =
+	{
+		{ 1 * count + 2, 8 },
+		{ 0 * count + 2, 3 },
+		{ 0 * count + 1, 2 },
+		{ 0 * count + 5, 4 },
+		{ 1 * count + 1, 6 },
+		{ 2 * count + 1, 7 },
+		{ 1 * count + 0, 10 },
+		{ 2 * count + 0, 5 },
+	};
+	ASSERT_GE(a.bucket_count(), il.size());
+	a.insert(il);
+	for (auto it = il.begin(); it != il.end(); ++it)
+	{
+		auto found = a.find(it->first);
+		ASSERT_NE(a.end(), found);
+		ASSERT_EQ(*it, *found);
+	}
+}
+TYPED_TEST_P(sherwood_test, more_collision_insert)
+{
+	typedef typename TypeParam::template map<int, int, IdentityHasher> map_type;
+	map_type a;
+	a.max_load_factor(1.0f);
+	size_t count = 11;
+	a.rehash(count);
+	count = a.bucket_count();
+	std::initializer_list<std::pair<int, int> > il =
+	{
+		{ 1 * count + 1, 8 },
+		{ 1 * count + 2, 6 },
+		{ 2 * count + 1, 3 },
+		{ 2 * count + 2, 7 },
+		{ 1 * count + 3, 5 },
+	};
+	ASSERT_GE(a.bucket_count(), il.size());
+	a.insert(il);
+	for (auto it = il.begin(); it != il.end(); ++it)
+	{
+		auto found = a.find(it->first);
+		ASSERT_NE(a.end(), found);
+		ASSERT_EQ(*it, *found);
+	}
+}
+
 TYPED_TEST_P(sherwood_test, emplace_hint)
 {
 	typedef typename TypeParam::template map<int, int> map_type;
@@ -210,22 +331,34 @@ TYPED_TEST_P(sherwood_test, crowded_end)
 	// test whether erase will correctly shift elements from the beginning
 	// of the storage to the end of the storage when erasing near the end
 	map_type a;
-	a.rehash(31);
-	ASSERT_EQ(31, a.bucket_count()); // need to be my amount for this test to make sense
-	a[28] = 5;
-	a[59] = 6;
-	a[90] = 7;
-	a[121] = 8;
-	a[152] = 9;
-	a[183] = 10;
-	a[214] = 11;
-	ASSERT_EQ(31, a.bucket_count()); // reallocation would mess up my test
-	ASSERT_EQ(121, a.begin()->first); // assume 28 goes to 28, 59 goes to 29, 90 goes to 30, 121 goes to 0
-	ASSERT_EQ((map_type{ { 28, 5 }, { 59, 6 }, { 90, 7 }, { 121, 8 }, { 152, 9, }, { 183, 10 }, { 214, 11 } }), a);
-	a.erase(28);
-	ASSERT_EQ((map_type{ { 59, 6 }, { 90, 7 }, { 121, 8 }, { 152, 9, }, { 183, 10 }, { 214, 11 } }), a);
+	size_t count = 31;
+	a.rehash(count);
+	count = a.bucket_count();
+	a[1 * count - 3] = 5;
+	a[2 * count - 3] = 6;
+	a[3 * count - 3] = 7;
+	a[4 * count - 3] = 8;
+	a[5 * count - 3] = 9;
+	a[6 * count - 3] = 10;
+	a[7 * count - 3] = 11;
+	ASSERT_EQ(count, a.bucket_count()); // reallocation would mess up my test
+	ASSERT_EQ(4 * count - 3, a.begin()->first); // assume 28 goes to 28, 59 goes to 29, 90 goes to 30, 121 goes to 0
+	ASSERT_EQ((map_type{ { 1 * count - 3, 5 }, { 2 * count - 3, 6 }, { 3 * count - 3, 7 }, { 4 * count - 3, 8 }, { 5 * count - 3, 9, }, { 6 * count - 3, 10 }, { 7 * count - 3, 11 } }), a);
+	a.erase(1 * count - 3);
+	ASSERT_EQ((map_type{ { 2 * count - 3, 6 }, { 3 * count - 3, 7 }, { 4 * count - 3, 8 }, { 5 * count - 3, 9, }, { 6 * count - 3, 10 }, { 7 * count - 3, 11 } }), a);
 	// had a bug where elements remained and weren't markes as deleted properly
 	ASSERT_EQ(a.size(), std::distance(a.begin(), a.end()));
+	// had a bug where the stored distance of element 121 was incorrect. so insert and remove elements
+	// to force it to shift to the wrong position
+	a[1 * count - 4] = 12;
+	a[2 * count - 4] = 13;
+	a[3 * count - 4] = 14;
+	a[4 * count - 4] = 15;
+	a.erase(1 * count - 4);
+	a.erase(2 * count - 4);
+	a.erase(3 * count - 4);
+	a.erase(4 * count - 4);
+	ASSERT_EQ((map_type{ { 2 * count - 3, 6 }, { 3 * count - 3, 7 }, { 4 * count - 3, 8 }, { 5 * count - 3, 9, }, { 6 * count - 3, 10 }, { 7 * count - 3, 11 } }), a);
 }
 TYPED_TEST_P(sherwood_test, swap)
 {
@@ -459,4 +592,4 @@ TYPED_TEST_P(sherwood_test, allow_growing_with_max_load_factor_1)
 	ASSERT_EQ((map_type{ { 1, 2 }, { 4, 4 }, { 7, 6 }, { 10, 8 } }), a);
 }
 
-REGISTER_TYPED_TEST_CASE_P(sherwood_test, empty, simple, move_construct, copy, erase, iterator_erase, conflicting_iterator_erase, range_erase, move_over_please, emplace_hint, special_value, crowded_end, swap, destructor_caller, throwing_allocator_test, stateful_hasher_test, load_factor, max_load_factor, dont_grow_when_you_wont_insert, allow_growing_with_max_load_factor_1, erase_conflicting_with_non_conflicting, conflicting_iterator_erase_middle, two_conflicting_iterator_erase, erase_all);
+REGISTER_TYPED_TEST_CASE_P(sherwood_test, empty, simple, move_construct, copy, erase, iterator_erase, conflicting_iterator_erase, range_erase, move_over_please, emplace_hint, special_value, crowded_end, swap, destructor_caller, throwing_allocator_test, stateful_hasher_test, load_factor, max_load_factor, dont_grow_when_you_wont_insert, allow_growing_with_max_load_factor_1, erase_conflicting_with_non_conflicting, conflicting_iterator_erase_middle, two_conflicting_iterator_erase, erase_all, conflicting_insert, move_over_distance, many_collisions, more_collision_insert);

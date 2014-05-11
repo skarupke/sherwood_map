@@ -23,7 +23,7 @@ struct scattered_successful_lookup
 {
   typedef unsigned int result_type;
 
-  unsigned int operator()(const Container & s,unsigned int n)const
+  unsigned int operator()(const Container & s,unsigned int n)const __attribute__((noinline))
   {
     unsigned int                                res=0;
     rand_seq                                    rnd(n);
@@ -40,7 +40,7 @@ struct scattered_unsuccessful_lookup
 {
   typedef unsigned int result_type;
 
-  unsigned int operator()(const Container & s,unsigned int n)const
+  unsigned int operator()(const Container & s,unsigned int n)const __attribute__((noinline))
   {
     unsigned int                                res=0;
     std::uniform_int_distribution<unsigned int> dist;
@@ -60,19 +60,22 @@ static void test(std::ostream & out,
   const char* title,
   const char* name1,const char* name2,const char* name3, const char* name4)
 {
-  unsigned int n0=10000,n1=3000000,dn=500;
+  //unsigned int n0=10000,n1=3000000,dn=500;
+	//unsigned int n0 = 13396, n1 = n0 + 1, dn = 20;
+	unsigned int n0=10000,n1=3000000,dn=500;
   double       fdn=1.05;
 
   out<<title<<":"<<std::endl;
-  out<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<std::endl;
+  out<<"amount;"<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<std::endl;
 
   for(unsigned int n=n0;n<=n1;n+=dn,dn=(unsigned int)(dn*fdn)){
     double t;
 
-    t=measure(boost::bind(
+	out << n;
+	t=measure(boost::bind(
       Tester<Container1>(),
       boost::cref(create<Container1>(n)),n));
-	out<<n<<";"<<(t/n)*10E6;
+	out<<";"<<(t/n)*10E6;
 
     t=measure(boost::bind(
       Tester<Container2>(),
@@ -100,7 +103,7 @@ static void test(std::ostream & out,
 #include <gtest/gtest.h>
 #include <fstream>
 
-TEST(profile, DISABLED_lookup)
+TEST(profile, lookup)
 {
   using namespace boost::multi_index;
 

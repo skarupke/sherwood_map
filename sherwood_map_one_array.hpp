@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sherwood_map_shared.hpp"
+#include "finished/sherwood_map.hpp"
 
 #include <memory>
 #include <functional>
@@ -8,6 +8,29 @@
 #include <algorithm>
 #include <cstddef>
 #include <stdexcept>
+
+namespace detail
+{
+template<typename It, typename Do, typename Undo>
+void exception_safe_for_each(It begin, It end, Do && do_func, Undo && undo_func)
+{
+	for (It it = begin; it != end; ++it)
+	{
+		try
+		{
+			do_func(*it);
+		}
+		catch(...)
+		{
+			while (it != begin)
+			{
+				undo_func(*--it);
+			}
+			throw;
+		}
+	}
+}
+}
 
 template<typename Key, typename Value, typename Hash = std::hash<Key>, typename Equality = std::equal_to<Key>, typename Allocator = std::allocator<std::pair<Key, Value> > >
 class thin_sherwood_map

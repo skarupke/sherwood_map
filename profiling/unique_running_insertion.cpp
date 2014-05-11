@@ -14,7 +14,7 @@ struct running_insertion
 {
   typedef unsigned int result_type;
 
-  unsigned int operator()(unsigned int n)const
+  unsigned int operator()(unsigned int n)const __attribute__((noinline))
   {
     unsigned int res=0;
     {
@@ -34,7 +34,7 @@ struct norehash_running_insertion
 {
   typedef unsigned int result_type;
 
-  unsigned int operator()(unsigned int n)const
+  unsigned int operator()(unsigned int n)const __attribute__((noinline))
   {
     unsigned int res=0;
     {
@@ -58,11 +58,11 @@ static void test(std::ostream & out,
   const char* title,
   const char* name1,const char* name2,const char* name3, const char* name4)
 {
-  unsigned int n0=10000,n1=30000,dn=500;
+  unsigned int n0=10000,n1=3000000,dn=500;
   double       fdn=1.05;
 
   out<<title<<":"<<std::endl;
-  out<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<std::endl;
+  out<<"amount;"<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<std::endl;
 
   for(unsigned int n=n0;n<=n1;n+=dn,dn=(unsigned int)(dn*fdn)){
     double t;
@@ -91,7 +91,7 @@ static void test(std::ostream & out,
 #include <fstream>
 #include "../finished/sherwood_map.hpp"
 
-TEST(profiling, DISABLED_insertion)
+TEST(profile, DISABLED_insertion)
 {
   using namespace boost::multi_index;
 

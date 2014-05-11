@@ -294,13 +294,13 @@ struct thin_sherwood_map_tester
 	template<typename K, typename V, typename H = std::hash<K>, typename E = std::equal_to<K>, typename A = std::allocator<std::pair<K, V> > >
 	using map = thin_sherwood_map<K, V, H, E, A>;
 };
-struct fat_sherwood_map_tester
+/*struct fat_sherwood_map_tester
 {
 	template<typename K, typename V, typename H = std::hash<K>, typename E = std::equal_to<K>, typename A = std::allocator<std::pair<K, V> > >
 	using map = fat_sherwood_map<K, V, H, E, A>;
-};
+};*/
 INSTANTIATE_TYPED_TEST_CASE_P(thin_sherwood_map, sherwood_test, thin_sherwood_map_tester);
-INSTANTIATE_TYPED_TEST_CASE_P(fat_sherwood_map, sherwood_test, fat_sherwood_map_tester);
+//INSTANTIATE_TYPED_TEST_CASE_P(fat_sherwood_map, sherwood_test, fat_sherwood_map_tester);
 }
 #endif
 

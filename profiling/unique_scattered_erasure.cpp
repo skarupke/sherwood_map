@@ -14,7 +14,7 @@ struct scattered_erasure
 {
   typedef unsigned int result_type;
 
-  unsigned int operator()(unsigned int n)const
+  unsigned int operator()(unsigned int n)const __attribute__((noinline))
   {
     unsigned int res=0;
     {
@@ -48,7 +48,7 @@ static void test(std::ostream & out,
   double       fdn=1.05;
 
   out<<title<<":"<<std::endl;
-  out<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<std::endl;
+  out<<"amount;"<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<std::endl;
 
   for(unsigned int n=n0;n<=n1;n+=dn,dn=(unsigned int)(dn*fdn)){
     double t;

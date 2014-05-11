@@ -73,7 +73,7 @@ void copy_construct_tests1(T*, test::random_generator const& generator)
         test::unordered_equivalence_tester<T> equivalent(x);
         BOOST_TEST(equivalent(y));
         // This isn't guaranteed:
-        BOOST_TEST(y.load_factor() < y.max_load_factor());
+		BOOST_TEST(y.load_factor() <= y.max_load_factor());
         BOOST_TEST(test::selected_count(y.get_allocator()) ==
             (allocator_type::is_select_on_copy));
         test::check_equivalent_keys(y);

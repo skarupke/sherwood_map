@@ -34,9 +34,29 @@ For more information, please refer to <http://unlicense.org/>
 #include <cstddef>
 #include <stdexcept>
 
+#define SHERWOOD_USE_PRIME_NUMBERS
+
 namespace detail
 {
 size_t next_prime(size_t size);
+inline size_t next_power_of_two(size_t size)
+{
+	--size;
+	size |= size >> 1;
+	size |= size >> 2;
+	size |= size >> 4;
+	size |= size >> 8;
+	size |= size >> 16;
+	size |= size >> 32;
+	++size;
+	return size;
+}
+inline size_t grow_power_of_two(size_t size)
+{
+	if (size < 4) return 4;
+	else return next_power_of_two(size);
+}
+
 template<typename Result, typename Functor>
 struct functor_storage : Functor
 {
@@ -215,6 +235,7 @@ inline size_t required_capacity(size_t size, float load_factor)
 std::invalid_argument invalid_max_load_factor();
 std::logic_error invalid_code_in_emplace();
 std::out_of_range at_out_of_range();
+std::logic_error unhandled_case();
 }
 
 template<typename Key, typename Value, typename Hash = std::hash<Key>, typename Equality = std::equal_to<Key>, typename Allocator = std::allocator<std::pair<Key, Value> > >
@@ -234,7 +255,12 @@ public:
 private:
 	typedef typename std::allocator_traits<Allocator>::template rebind_alloc<value_type > value_alloc;
 	typedef std::allocator_traits<value_alloc> value_allocator_traits;
-	typedef typename std::allocator_traits<Allocator>::template rebind_alloc<size_t> hash_alloc;
+	struct HashAndDistance
+	{
+		size_t hash;
+		size_t distance_to_initial_bucket;
+	};
+	typedef typename std::allocator_traits<Allocator>::template rebind_alloc<HashAndDistance> hash_alloc;
 	typedef std::allocator_traits<hash_alloc> hash_allocator_traits;
 	typedef typename value_allocator_traits::pointer value_pointer;
 	typedef typename value_allocator_traits::const_pointer const_value_pointer;
@@ -250,6 +276,8 @@ private:
 	typedef detail::KeyOrValueHasher<key_type, value_type, hasher> KeyOrValueHasher;
 	typedef detail::KeyOrValueEquality<key_type, value_type, key_equal> KeyOrValueEquality;
 
+	struct AdvanceIterator{};
+	struct DoNotAdvanceIterator{};
 	template<typename O, typename HashIt, typename ValueIt>
 	struct templated_iterator : std::iterator<std::forward_iterator_tag, O, ptrdiff_t>
 	{
@@ -257,14 +285,18 @@ private:
 			: hash_it(), hash_end(), value_it()
 		{
 		}
-		templated_iterator(HashIt hash_it, HashIt hash_end, ValueIt value_it)
+		templated_iterator(HashIt hash_it, HashIt hash_end, ValueIt value_it, AdvanceIterator)
 			: hash_it(hash_it), hash_end(hash_end), value_it(value_it)
 		{
-			while (this->hash_it != this->hash_end && *this->hash_it == detail::empty_hash)
+			while (this->hash_it != this->hash_end && this->hash_it->hash == detail::empty_hash)
 			{
 				++this->hash_it;
 				++this->value_it;
 			}
+		}
+		templated_iterator(HashIt hash_it, HashIt hash_end, ValueIt value_it, DoNotAdvanceIterator)
+			: hash_it(hash_it), hash_end(hash_end), value_it(value_it)
+		{
 		}
 		template<typename OO, typename OHashIt, typename OValueIt>
 		templated_iterator (templated_iterator<OO, OHashIt, OValueIt> other)
@@ -281,7 +313,7 @@ private:
 		}
 		templated_iterator & operator++()
 		{
-			return *this = templated_iterator(hash_it + ptrdiff_t(1), hash_end, value_it + ptrdiff_t(1));
+			return *this = templated_iterator(hash_it + ptrdiff_t(1), hash_end, value_it + ptrdiff_t(1), AdvanceIterator{});
 		}
 		templated_iterator operator++(int)
 		{
@@ -327,7 +359,7 @@ private:
 			{
 				hash_begin = hash_allocator_traits::allocate(*this, size);
 				hash_end = hash_begin + ptrdiff_t(size);
-				std::fill(hash_begin, hash_end, detail::empty_hash);
+				std::fill(hash_begin, hash_end, HashAndDistance{ detail::empty_hash, 0 });
 			}
 		}
 		HashStorageType(const HashStorageType & other, const Allocator & alloc)
@@ -382,10 +414,11 @@ private:
 	};
 
 	template<typename... Args>
-	static void init_empty(value_alloc & alloc, hash_pointer hash_it, value_pointer value_it, size_t hash, Args &&... args)
+	static void init_empty(value_alloc & alloc, hash_pointer hash_it, value_pointer value_it, size_t hash, size_t distance_to_initial_bucket, Args &&... args)
 	{
 		value_allocator_traits::construct(alloc, std::addressof(*value_it), std::forward<Args>(args)...);
-		*hash_it = hash;
+		hash_it->hash = hash;
+		hash_it->distance_to_initial_bucket = distance_to_initial_bucket;
 	}
 
 	struct StorageType : HashStorageType, value_alloc, KeyOrValueHasher, KeyOrValueEquality
@@ -503,14 +536,6 @@ private:
 				value_begin = value_allocator_traits::allocate(*this, size);
 			}
 		}
-		StorageType(const StorageType & other, const Allocator & alloc)
-			: StorageType(other.capacity(), static_cast<const hasher &>(other), static_cast<const key_equal &>(other), alloc)
-		{
-		}
-		StorageType(const StorageType & other)
-			: StorageType(other, static_cast<const value_alloc &>(other))
-		{
-		}
 		StorageType(StorageType && other, const Allocator & alloc)
 			: HashStorageType(std::move(other), alloc)
 			, value_alloc(alloc)
@@ -558,14 +583,14 @@ private:
 		void iterator_destroy(iterator it)
 		{
 			value_allocator_traits::destroy(*this, std::addressof(*it.value_it));
-			*it.hash_it = detail::empty_hash;
+			it.hash_it->hash = detail::empty_hash;
 		}
 
 		void clear()
 		{
 			for (auto it = begin(), end = this->end(); it != end; ++it)
 			{
-				if (*it.hash_it != detail::empty_hash) iterator_destroy(it);
+				if (it.hash_it->hash != detail::empty_hash) iterator_destroy(it);
 			}
 		}
 
@@ -593,7 +618,7 @@ private:
 		{
 			for (; it.it != target; ++it)
 			{
-				if (*it.it.hash_it != detail::empty_hash)
+				if (it.it.hash_it->hash != detail::empty_hash)
 				{
 					iterator_destroy(it.it);
 				}
@@ -604,7 +629,7 @@ private:
 			std::iter_swap(lhs.value_it, rhs.value_it);
 			std::iter_swap(lhs.hash_it, rhs.hash_it);
 		}
-		iterator erase(iterator first, iterator last)
+		iterator erase(iterator first, iterator last, size_t distance)
 		{
 			if (first == last) return first;
 			if (last == end())
@@ -616,78 +641,86 @@ private:
 					return end();
 				}
 			}
-			size_t capacity_copy = this->capacity();
-			WrapAroundIt first_wrap{ first, begin(), end() };
-			WrapAroundIt last_wrap{ last, begin(), end() };
-			for (;; ++first_wrap)
+			for (WrapAroundIt first_wrap{ first, begin(), end() }, last_wrap{ last, begin(), end() };; ++first_wrap, ++last_wrap)
 			{
-				if (*last_wrap.it.hash_it == detail::empty_hash)
+				if (last_wrap.it.hash_it->hash == detail::empty_hash)
 				{
 					erase_advance(first_wrap, last_wrap.it);
 					return first;
 				}
-				iterator last_initial = initial_bucket(*last_wrap.it.hash_it, capacity_copy);
-				WrapAroundIt last_next = std::next(last_wrap);
-				if (iterator_in_range(last_initial, std::next(first_wrap).it, last_next.it))
+				size_t last_distance = last_wrap.it.hash_it->distance_to_initial_bucket;
+				if (last_distance < distance)
 				{
-					erase_advance(first_wrap, last_initial);
+					do
+					{
+						--distance;
+						if (first_wrap.it.hash_it->hash != detail::empty_hash) iterator_destroy(first_wrap.it);
+						++first_wrap;
+					}
+					while (last_distance < distance);
 					if (first_wrap == last_wrap) return first;
 				}
+				last_wrap.it.hash_it->distance_to_initial_bucket -= distance;
 				iter_swap(first_wrap.it, last_wrap.it);
-				last_wrap = last_next;
 			}
 		}
 		iterator initial_bucket(size_type hash, size_t capacity)
 		{
+#ifdef SHERWOOD_USE_PRIME_NUMBERS
 			return begin() + hash % capacity;
+#else
+			return begin() + (hash & (capacity - 1));
+#endif
 		}
 		const_iterator initial_bucket(size_type hash, size_t capacity) const
 		{
+#ifdef SHERWOOD_USE_PRIME_NUMBERS
 			return begin() + hash % capacity;
-		}
-		size_t distance_to_initial_bucket(hash_pointer it, size_t hash, size_t capacity) const
-		{
-			const_hash_pointer initial = initial_bucket(hash, capacity).hash_it;
-			if (const_hash_pointer(it) < initial) return (const_hash_pointer(this->hash_end) - initial) + (it - this->hash_begin);
-			else return const_hash_pointer(it) - initial;
+#else
+			return begin() + (hash & (capacity - 1));
+#endif
 		}
 
-		enum FindResult
+		enum FindResultType
 		{
 			FoundEmpty,
 			FoundEqual,
-			FoundNotEqual0
+			FoundNotEqual
+		};
+		struct FindResult
+		{
+			iterator it;
+			FindResultType result;
+			size_t distance_to_initial_bucket;
 		};
 
+
 		template<typename First>
-		std::pair<iterator, FindResult> find_hash(size_type hash, const First & first)
+		inline FindResult find_hash(size_type hash, const First & first)
 		{
-			size_t capacity_copy = this->capacity();
-			if (!capacity_copy)
+			if (this->hash_begin == this->hash_end)
 			{
-				iterator end{ this->hash_end, value_end() };
-				return { end, FoundNotEqual0 };
+				return { end(), FoundEmpty, 0 };
 			}
-			WrapAroundIt it{initial_bucket(hash, capacity_copy), begin(), end()};
-			size_t current_hash = *it.it.hash_it;
+			WrapAroundIt it{initial_bucket(hash, this->capacity()), begin(), end()};
+			size_t current_hash = it.it.hash_it->hash;
 			if (current_hash == detail::empty_hash)
-				return { it.it, FoundEmpty };
-			if (current_hash == hash && static_cast<KeyOrValueEquality &>(*this)(it.it.value_it->first, first))
-				return { it.it, FoundEqual };
-			for (size_t distance = 1;; ++distance)
+				return { it.it, FoundEmpty, 0 };
+			for (size_t distance = 0;;)
 			{
-				++it;
-				current_hash = *it.it.hash_it;
-				if (current_hash == detail::empty_hash)
-					return { it.it, FoundEmpty };
 				if (current_hash == hash && static_cast<KeyOrValueEquality &>(*this)(it.it.value_it->first, first))
-					return { it.it, FoundEqual };
-				if (distance_to_initial_bucket(it.it.hash_it, current_hash, capacity_copy) < distance)
-					return { it.it, FindResult(FoundNotEqual0 + distance) };
+					return { it.it, FoundEqual, distance };
+				++it;
+				++distance;
+				current_hash = it.it.hash_it->hash;
+				if (current_hash == detail::empty_hash)
+					return { it.it, FoundEmpty, distance };
+				if (it.it.hash_it->distance_to_initial_bucket < distance)
+					return { it.it, FoundNotEqual, distance };
 			}
 		}
 		template<typename First>
-		std::pair<const_iterator, FindResult> find_hash(size_type hash, const First & first) const
+		inline FindResult find_hash(size_type hash, const First & first) const
 		{
 			return const_cast<sherwood_map &>(*this).find_hash(hash, first);
 		}
@@ -711,7 +744,13 @@ public:
 	{
 	}
 	sherwood_map(const sherwood_map & other, const Allocator & alloc)
-		: entries(other.entries, alloc), _max_load_factor(other._max_load_factor)
+#ifdef SHERWOOD_USE_PRIME_NUMBERS
+		: entries(detail::next_prime(detail::required_capacity(other.size(), other.max_load_factor())), other.hash_function(), other.key_eq(), alloc)
+		, _max_load_factor(other._max_load_factor)
+#else
+		: entries(detail::grow_power_of_two(detail::required_capacity(other.size(), other.max_load_factor())), other.hash_function(), other.key_eq(), alloc)
+		, _max_load_factor(other._max_load_factor)
+#endif
 	{
 		insert(other.begin(), other.end());
 	}
@@ -785,12 +824,12 @@ public:
 	{
 	}
 
-	iterator begin()				{ return { entries.hash_begin,	entries.hash_end, entries.value_begin	}; }
-	iterator end()					{ return { entries.hash_end,	entries.hash_end, entries.value_end()	}; }
-	const_iterator begin()	const	{ return { entries.hash_begin,	entries.hash_end, entries.value_begin	}; }
-	const_iterator end()	const	{ return { entries.hash_end,	entries.hash_end, entries.value_end()	}; }
-	const_iterator cbegin()	const	{ return { entries.hash_begin,	entries.hash_end, entries.value_begin	}; }
-	const_iterator cend()	const	{ return { entries.hash_end,	entries.hash_end, entries.value_end()	}; }
+	iterator begin()				{ return { entries.hash_begin,	entries.hash_end, entries.value_begin,	AdvanceIterator{}		}; }
+	iterator end()					{ return { entries.hash_end,	entries.hash_end, entries.value_end(),	DoNotAdvanceIterator{}	}; }
+	const_iterator begin()	const	{ return { entries.hash_begin,	entries.hash_end, entries.value_begin,	AdvanceIterator{}		}; }
+	const_iterator end()	const	{ return { entries.hash_end,	entries.hash_end, entries.value_end(),	DoNotAdvanceIterator{}	}; }
+	const_iterator cbegin()	const	{ return { entries.hash_begin,	entries.hash_end, entries.value_begin,	AdvanceIterator{}		}; }
+	const_iterator cend()	const	{ return { entries.hash_end,	entries.hash_end, entries.value_end(),	DoNotAdvanceIterator{}	}; }
 
 	bool empty() const
 	{
@@ -836,54 +875,7 @@ public:
 	template<typename First, typename... Args>
 	std::pair<iterator, bool> emplace(First && first, Args &&... args)
 	{
-		size_type hash = static_cast<KeyOrValueHasher &>(entries)(first);
-		auto found = entries.find_hash(hash, first);
-		if (found.second == StorageType::FoundEqual)
-		{
-			return { { found.first.hash_it, entries.hash_end, found.first.value_it }, false };
-		}
-		if (size() + 1 > _max_load_factor * entries.capacity())
-		{
-			grow();
-			found = entries.find_hash(hash, first);
-		}
-		switch(found.second)
-		{
-		case StorageType::FoundEqual:
-			throw detail::invalid_code_in_emplace();
-		case StorageType::FoundEmpty:
-			init_empty(entries, found.first.hash_it, found.first.value_it, hash, std::forward<First>(first), std::forward<Args>(args)...);
-			++_size;
-			return { { found.first.hash_it, entries.hash_end, found.first.value_it }, true };
-		default:
-			value_type new_value(std::forward<First>(first), std::forward<Args>(args)...);
-			size_t & current_hash = *found.first.hash_it;
-			value_type & current_value = *found.first.value_it;
-			typename StorageType::WrapAroundIt next{found.first, entries.begin(), entries.end()};
-			++next;
-			if (*next.it.hash_it != detail::empty_hash)
-			{
-				size_t capacity = entries.capacity();
-				size_t distance = found.second - StorageType::FoundNotEqual0;//entries.distance_to_initial_bucket(found.first.hash_it, current_hash, capacity) + 1;
-				do
-				{
-					size_t next_distance = entries.distance_to_initial_bucket(next.it.hash_it, *next.it.hash_it, capacity);
-					if (next_distance < distance)
-					{
-						distance = next_distance;
-						StorageType::iter_swap(found.first, next.it);
-					}
-					++distance;
-					++next;
-				}
-				while (*next.it.hash_it != detail::empty_hash);
-			}
-			init_empty(entries, next.it.hash_it, next.it.value_it, current_hash, std::move(current_value));
-			current_value = std::move(new_value);
-			current_hash = hash;
-			++_size;
-			return { { found.first.hash_it, entries.hash_end, found.first.value_it }, true };
-		}
+		return emplace_with_hash(static_cast<KeyOrValueHasher &>(entries)(first), std::forward<First>(first), std::forward<Args>(args)...);
 	}
 	std::pair<iterator, bool> emplace()
 	{
@@ -898,14 +890,15 @@ public:
 	{
 		--_size;
 		typename StorageType::iterator non_const_pos(iterator_const_cast(pos));
-		auto erased = entries.erase(non_const_pos, std::next(non_const_pos));
-		return { erased.hash_it, entries.hash_end, erased.value_it };
+		auto erased = entries.erase(non_const_pos, std::next(non_const_pos), 1);
+		return { erased.hash_it, entries.hash_end, erased.value_it, AdvanceIterator{} };
 	}
 	iterator erase(const_iterator first, const_iterator last)
 	{
-		_size -= std::distance(first, last);
-		auto erased = entries.erase(iterator_const_cast(first), iterator_const_cast(last));
-		return { erased.hash_it, entries.hash_end, erased.value_it };
+		size_t distance = std::distance(first, last);
+		_size -= distance;
+		auto erased = entries.erase(iterator_const_cast(first), iterator_const_cast(last), distance);
+		return { erased.hash_it, entries.hash_end, erased.value_it, AdvanceIterator{} };
 	}
 	size_type erase(const key_type & key)
 	{
@@ -931,7 +924,7 @@ public:
 	{
 		size_t hash = static_cast<KeyOrValueHasher &>(entries)(key);
 		auto found = entries.find_hash(hash, key);
-		if (found.second == StorageType::FoundEqual) return { found.first.hash_it, entries.hash_end, found.first.value_it };
+		if (found.result == StorageType::FoundEqual) return { found.it.hash_it, entries.hash_end, found.it.value_it, DoNotAdvanceIterator{} };
 		else return end();
 	}
 	template<typename T>
@@ -998,13 +991,23 @@ public:
 	}
 	void reserve(size_type count)
 	{
+#ifdef SHERWOOD_USE_PRIME_NUMBERS
 		size_t new_size = detail::required_capacity(count, max_load_factor());
 		if (new_size > entries.capacity()) reallocate(detail::next_prime(new_size));
+#else
+		size_t new_size = detail::required_capacity(count, max_load_factor());
+		if (new_size > entries.capacity()) reallocate(detail::grow_power_of_two(new_size));
+#endif
 	}
 	void rehash(size_type count)
 	{
+#ifdef SHERWOOD_USE_PRIME_NUMBERS
 		if (count < size() / max_load_factor()) count = detail::next_prime(size_type(std::ceil(size() / max_load_factor())));
 		reallocate(count);
+#else
+		if (count < size() / max_load_factor()) count = size_type(std::ceil(size() / max_load_factor()));
+		reallocate(detail::grow_power_of_two(count));
+#endif
 	}
 	size_type bucket(const key_type & key) const
 	{
@@ -1046,9 +1049,58 @@ public:
 	}
 
 private:
+	template<typename First, typename... Args>
+	std::pair<iterator, bool> emplace_with_hash(size_t hash, First && first, Args &&... args)
+	{
+		auto found = entries.find_hash(hash, first);
+		if (found.result == StorageType::FoundEqual)
+		{
+			return { { found.it.hash_it, entries.hash_end, found.it.value_it, DoNotAdvanceIterator{} }, false };
+		}
+		if (size() + 1 > _max_load_factor * entries.capacity())
+		{
+			grow();
+			found = entries.find_hash(hash, first);
+		}
+		switch(found.result)
+		{
+		case StorageType::FoundEqual:
+			throw detail::invalid_code_in_emplace();
+		case StorageType::FoundEmpty:
+			init_empty(entries, found.it.hash_it, found.it.value_it, hash, found.distance_to_initial_bucket, std::forward<First>(first), std::forward<Args>(args)...);
+			++_size;
+			return { { found.it.hash_it, entries.hash_end, found.it.value_it, DoNotAdvanceIterator{} }, true };
+		case StorageType::FoundNotEqual:
+			value_type new_value(std::forward<First>(first), std::forward<Args>(args)...);
+			HashAndDistance & current_hash = *found.it.hash_it;
+			++current_hash.distance_to_initial_bucket;
+			value_type & current_value = *found.it.value_it;
+			typename StorageType::WrapAroundIt next{found.it, entries.begin(), entries.end()};
+			++next;
+			while (next.it.hash_it->hash != detail::empty_hash)
+			{
+				if (next.it.hash_it->distance_to_initial_bucket < current_hash.distance_to_initial_bucket)
+				{
+					StorageType::iter_swap(found.it, next.it);
+				}
+				++current_hash.distance_to_initial_bucket;
+				++next;
+			}
+			init_empty(entries, next.it.hash_it, next.it.value_it, current_hash.hash, current_hash.distance_to_initial_bucket, std::move(current_value));
+			current_value = std::move(new_value);
+			current_hash = HashAndDistance{ hash, found.distance_to_initial_bucket };
+			++_size;
+			return { { found.it.hash_it, entries.hash_end, found.it.value_it, DoNotAdvanceIterator{} }, true };
+		}
+		throw detail::unhandled_case();
+	}
 	void grow()
 	{
+#ifdef SHERWOOD_USE_PRIME_NUMBERS
 		reallocate(detail::next_prime(std::max(detail::required_capacity(_size + 1, _max_load_factor), entries.capacity() * 2)));
+#else
+		reallocate(detail::grow_power_of_two(std::max(detail::required_capacity(_size + 1, _max_load_factor), entries.capacity() * 2)));
+#endif
 	}
 	void reallocate(size_type size) __attribute__((noinline))
 	{
@@ -1058,8 +1110,9 @@ private:
 		auto value_it = replacement.value_begin;
 		for (auto it = replacement.hash_begin, end = replacement.hash_end; it != end; ++it, ++value_it)
 		{
-			if (*it != detail::empty_hash)
-				emplace(std::move(*value_it));
+			size_t hash = it->hash;
+			if (hash != detail::empty_hash)
+				emplace_with_hash(hash, std::move(*value_it));
 		}
 	}
 
@@ -1084,6 +1137,10 @@ private:
 
 	StorageType entries;
 	size_t _size = 0;
+#ifdef SHERWOOD_USE_PRIME_NUMBERS
 	static constexpr const float default_load_factor = 0.85f;
+#else
+	static constexpr const float default_load_factor = 0.8f;
+#endif
 	float _max_load_factor = default_load_factor;
 };

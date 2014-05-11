@@ -85,8 +85,6 @@ HEADERS += \
     boost_test/unordered/compile_tests.hpp \
     sherwood_map.hpp \
     sherwood_map_one_array.hpp \
-    sherwood_map_two_arrays.hpp \
-    sherwood_map_shared.hpp \
     finished/sherwood_map.hpp \
     sherwood_test.hpp \
     profiling/profile_shared.h

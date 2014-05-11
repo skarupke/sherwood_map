@@ -61,7 +61,10 @@ inline void resume_timing()
 struct rand_seq
 {
   rand_seq(unsigned int):gen(34862){}
-  unsigned int operator()(){return dist(gen);}
+  unsigned int operator()()
+  {
+	  return dist(gen) * 16;
+  }
 
 private:
   std::uniform_int_distribution<unsigned int> dist;
