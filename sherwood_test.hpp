@@ -279,7 +279,11 @@ TYPED_TEST_P(sherwood_test, move_over_please)
 		{ 2 * count + 0, 8 },
 		{ 3 * count + 0, 9 }
 	});
-	ASSERT_EQ((map_type{ { 0 * count + 1, 5 }, { 0 * count + 2, 6 }, { 1 * count + 0, 7 }, { 2 * count + 0, 8 }, { 3 * count + 0, 9 } }), a);
+	ASSERT_EQ(5, a[0 * count + 1]);
+	ASSERT_EQ(6, a[0 * count + 2]);
+	ASSERT_EQ(7, a[1 * count + 0]);
+	ASSERT_EQ(8, a[2 * count + 0]);
+	ASSERT_EQ(9, a[3 * count + 0]);
 }
 TYPED_TEST_P(sherwood_test, move_over_distance)
 {

@@ -63,7 +63,7 @@ struct rand_seq
   rand_seq(unsigned int):gen(34862){}
   unsigned int operator()()
   {
-	  return dist(gen);
+	  return dist(gen) * 16;
   }
 
 private:

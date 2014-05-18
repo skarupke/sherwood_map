@@ -96,6 +96,14 @@ std::out_of_range at_out_of_range()
 {
 	return std::out_of_range("the key that you passed to the at() function did not exist  in this map");
 }
+std::logic_error invalid_code_in_emplace()
+{
+	return std::logic_error("should be impossible to reach this because I already handle the FoundEqual case above");
+}
+std::logic_error unhandled_case()
+{
+	return std::logic_error("unhandled case in the switch statement above");
+}
 }
 
 #ifndef DISABLE_GTEST

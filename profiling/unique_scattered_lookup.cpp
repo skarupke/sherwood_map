@@ -55,18 +55,18 @@ struct scattered_unsuccessful_lookup
 
 template<
   template<typename> class Tester,
-  typename Container1,typename Container2,typename Container3, typename Container4>
+  typename Container1,typename Container2,typename Container3, typename Container4, typename Container5>
 static void test(std::ostream & out,
   const char* title,
-  const char* name1,const char* name2,const char* name3, const char* name4)
+  const char* name1,const char* name2,const char* name3, const char* name4, const char * name5)
 {
   //unsigned int n0=10000,n1=3000000,dn=500;
-	//unsigned int n0 = 381886, n1 = n0 + 1, dn = 20;
+	//unsigned int n0 = 10500, n1 = n0 + 1, dn = 20;
 	unsigned int n0=10000,n1=3000000,dn=500;
   double       fdn=1.05;
 
   out<<title<<":"<<std::endl;
-  out<<"amount;"<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<std::endl;
+  out<<"amount;"<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<";"<<name5<<std::endl;
 
   for(unsigned int n=n0;n<=n1;n+=dn,dn=(unsigned int)(dn*fdn)){
     double t;
@@ -90,6 +90,11 @@ static void test(std::ostream & out,
 	t=measure(boost::bind(
 	  Tester<Container4>(),
 	  boost::cref(create<Container4>(n)),n));
+	out<<";"<<(t/n)*10E6;
+
+	t=measure(boost::bind(
+	  Tester<Container5>(),
+	  boost::cref(create<Container5>(n)),n));
 	out<<";"<<(t/n)*10E6<<std::endl;
   }
 }
@@ -99,7 +104,7 @@ static void test(std::ostream & out,
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <unordered_map>
-#include "../finished/sherwood_map.hpp"
+#include "sherwood_map.hpp"
 #include <gtest/gtest.h>
 #include <fstream>
 
@@ -119,6 +124,7 @@ TEST(profile, DISABLED_lookup)
     >
   >                                               container_t3;
 	typedef sherwood_map<unsigned int, unsigned int> container_t4;
+	typedef thin_sherwood_map<unsigned int, unsigned int> container_t5;
 
 	std::ofstream successful_out("successful_lookup");
 
@@ -126,13 +132,13 @@ TEST(profile, DISABLED_lookup)
     scattered_successful_lookup,
     container_t1,
     container_t2,
-	container_t3, container_t4>
+	container_t3, container_t4, container_t5>
   (successful_out,
     "Scattered successful lookup",
 	"std::unordered_map",
 	"boost::unordered_map",
 	"multi_index::hashed_unique",
-			  "sherwood_map"
+			  "sherwood_map", "thin_sherwood_map"
   );
 
   std::ofstream unsuccessful_out("unsuccessful_lookup");
@@ -141,12 +147,12 @@ TEST(profile, DISABLED_lookup)
     scattered_unsuccessful_lookup,
     container_t1,
     container_t2,
-	container_t3, container_t4>
+	container_t3, container_t4, container_t5>
   (
 			  unsuccessful_out,
     "Scattered unsuccessful lookup",
 	"std::unordered_map",
 	"boost::unordered_map",
-	"multi_index::hashed_unique", "sherwood_map"
+	"multi_index::hashed_unique", "sherwood_map", "thin_sherwood_map"
   );
 }
