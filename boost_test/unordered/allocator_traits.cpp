@@ -194,6 +194,11 @@ struct ptr
     
     ptr(void* v) : value_((T*) v) {}
     T& operator*() const { return *value_; }
+	ptr & operator +=(ptrdiff_t dist)
+	{
+		value_ += dist;
+		return *this;
+	}
 };
 
 template <>

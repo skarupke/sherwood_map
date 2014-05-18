@@ -61,7 +61,7 @@ static void test(std::ostream & out,
   const char* name1,const char* name2,const char* name3, const char* name4)
 {
   //unsigned int n0=10000,n1=3000000,dn=500;
-	//unsigned int n0 = 13396, n1 = n0 + 1, dn = 20;
+	//unsigned int n0 = 381886, n1 = n0 + 1, dn = 20;
 	unsigned int n0=10000,n1=3000000,dn=500;
   double       fdn=1.05;
 
@@ -103,7 +103,7 @@ static void test(std::ostream & out,
 #include <gtest/gtest.h>
 #include <fstream>
 
-TEST(profile, lookup)
+TEST(profile, DISABLED_lookup)
 {
   using namespace boost::multi_index;
 

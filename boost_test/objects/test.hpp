@@ -464,6 +464,8 @@ namespace test
 		ptr& operator--() { --ptr_; return *this; }
 		ptr operator--(int) { ptr tmp(*this); --ptr_; return tmp; }
 		ptr operator+(std::ptrdiff_t s) const { return ptr<T>(ptr_ + s); }
+		ptr & operator+=(ptrdiff_t dist) { ptr_ += dist; return *this; }
+		ptr & operator-=(ptrdiff_t dist) { ptr_ -= dist; return *this; }
 		std::ptrdiff_t operator-(const ptr & other) const { return ptr_ - other.ptr_; }
 		friend ptr operator+(std::ptrdiff_t s, ptr p)
             { return ptr<T>(s + p.ptr_); }

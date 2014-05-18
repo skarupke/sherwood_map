@@ -275,6 +275,8 @@ namespace minimal
         ptr operator+(std::ptrdiff_t s) const { return ptr<T>(ptr_ + s); }
         friend ptr operator+(std::ptrdiff_t s, ptr p)
             { return ptr<T>(s + p.ptr_); }
+		ptr & operator+=(ptrdiff_t dist) { ptr_ += dist; return *this; }
+		ptr & operator-=(ptrdiff_t dist) { ptr_ -= dist; return *this; }
         T& operator[](std::ptrdiff_t s) const { return ptr_[s]; }
         bool operator!() const { return !ptr_; }
         

@@ -182,7 +182,13 @@ TYPED_TEST_P(sherwood_test, erase_conflicting_with_non_conflicting)
 	// order as they are here. then we erase the first two.
 	// element 11 has to move over by two, element 3 only has to
 	// move over by one
-	a.insert({ { 0 * count + 1, 2 }, { 1 * count + 1, 5 }, { 2 * count + 1, 8 }, { 0 * count + 3, 9 } });
+	a.insert(
+	{
+		{ 0 * count + 1, 2 },
+		{ 1 * count + 1, 5 },
+		{ 2 * count + 1, 8 },
+		{ 0 * count + 3, 9 }
+	});
 	a.erase(a.begin(), std::next(a.begin(), 2));
 	ASSERT_EQ((map_type{ { 0 * count + 3, 9 }, { 2 * count + 1, 8 } }), a);
 }
@@ -205,6 +211,54 @@ TYPED_TEST_P(sherwood_test, erase_all)
 	ASSERT_EQ(a.end(), a.erase(a.begin(), a.end()));
 	ASSERT_TRUE(a.empty());
 	ASSERT_EQ(a.end(), a.begin());
+}
+TYPED_TEST_P(sherwood_test, erase_crowded)
+{
+	typedef typename TypeParam::template map<int, int> map_type;
+	map_type a;
+	a.max_load_factor(1.0f);
+	size_t count = 7;
+	a.rehash(count);
+	count = a.bucket_count();
+	a[1 * count + 0] = 1;
+	a[2 * count + 0] = 2;
+	a[3 * count + 0] = 3;
+	a[4 * count + 0] = 4;
+	a[5 * count + 0] = 5;
+	a[0 * count + 1] = 6;
+	a[0 * count + 2] = 7;
+	a.erase(std::next(a.begin(), 4), std::next(a.begin(), 6));
+	ASSERT_EQ(1, a[1 * count + 0]);
+	ASSERT_EQ(2, a[2 * count + 0]);
+	ASSERT_EQ(3, a[3 * count + 0]);
+	ASSERT_EQ(4, a[4 * count + 0]);
+	ASSERT_EQ(7, a[0 * count + 2]);
+}
+TYPED_TEST_P(sherwood_test, erase_big)
+{
+	typedef typename TypeParam::template map<int, int> map_type;
+	map_type a;
+	a.max_load_factor(1.0f);
+	size_t count = 7;
+	a.rehash(count);
+	count = a.bucket_count();
+	a[1 * count + 0] = 1;
+	a[2 * count + 0] = 2;
+	a[3 * count + 0] = 3;
+	a[4 * count + 0] = 4;
+	a[0 * count + 1] = 6;
+	a[0 * count + 6] = 7;
+	a.erase(std::next(a.begin(), 4), a.end());
+	a[1 * count + 1] = 8;
+	a[1 * count + 2] = 9;
+	a[2 * count + 2] = 10;
+	ASSERT_EQ(1, a[1 * count + 0]);
+	ASSERT_EQ(2, a[2 * count + 0]);
+	ASSERT_EQ(3, a[3 * count + 0]);
+	ASSERT_EQ(4, a[4 * count + 0]);
+	ASSERT_EQ(8, a[1 * count + 1]);
+	ASSERT_EQ(9, a[1 * count + 2]);
+	ASSERT_EQ(10, a[2 * count + 2]);
 }
 TYPED_TEST_P(sherwood_test, move_over_please)
 {
@@ -592,4 +646,4 @@ TYPED_TEST_P(sherwood_test, allow_growing_with_max_load_factor_1)
 	ASSERT_EQ((map_type{ { 1, 2 }, { 4, 4 }, { 7, 6 }, { 10, 8 } }), a);
 }
 
-REGISTER_TYPED_TEST_CASE_P(sherwood_test, empty, simple, move_construct, copy, erase, iterator_erase, conflicting_iterator_erase, range_erase, move_over_please, emplace_hint, special_value, crowded_end, swap, destructor_caller, throwing_allocator_test, stateful_hasher_test, load_factor, max_load_factor, dont_grow_when_you_wont_insert, allow_growing_with_max_load_factor_1, erase_conflicting_with_non_conflicting, conflicting_iterator_erase_middle, two_conflicting_iterator_erase, erase_all, conflicting_insert, move_over_distance, many_collisions, more_collision_insert);
+REGISTER_TYPED_TEST_CASE_P(sherwood_test, empty, simple, move_construct, copy, erase, iterator_erase, conflicting_iterator_erase, range_erase, move_over_please, emplace_hint, special_value, crowded_end, swap, destructor_caller, throwing_allocator_test, stateful_hasher_test, load_factor, max_load_factor, dont_grow_when_you_wont_insert, allow_growing_with_max_load_factor_1, erase_conflicting_with_non_conflicting, conflicting_insert, move_over_distance, many_collisions, more_collision_insert, conflicting_iterator_erase_middle, two_conflicting_iterator_erase, erase_all, erase_crowded, erase_big);

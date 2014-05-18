@@ -44,7 +44,7 @@ void erase_tests1(Container*, test::random_generator generator)
             BOOST_TEST(x.size() == old_size - count);
             BOOST_TEST(x.count(test::get_key<Container>(*it)) == 0);
             BOOST_TEST(x.find(test::get_key<Container>(*it)) == x.end());
-            if (++iterations % 20 == 0) test::check_equivalent_keys(x);
+			if (++iterations % 1 == 0) test::check_equivalent_keys(x);
         }
     }
 
