@@ -23,16 +23,25 @@ struct scattered_successful_lookup
 {
   typedef unsigned int result_type;
 
-  unsigned int operator()(const Container & s,unsigned int n)const __attribute__((noinline))
+	scattered_successful_lookup(unsigned int n)
+		: container(create<Container>(n)), amount(n)
+	{
+	}
+
+  unsigned int operator()()const __attribute__((noinline))
   {
     unsigned int                                res=0;
-    rand_seq                                    rnd(n);
-    auto                                        end_=s.end();
-    while(n--){
-      if(s.find(rnd())!=end_)++res;
+	rand_seq                                    rnd(amount);
+	auto                                        end_=container.end();
+	unsigned int n = amount;
+	while(n--){
+	  if(container.find(rnd())!=end_)++res;
     }
     return res;
   }
+private:
+  Container container;
+  unsigned int amount;
 };
 
 template<typename Container>
@@ -40,119 +49,35 @@ struct scattered_unsuccessful_lookup
 {
   typedef unsigned int result_type;
 
-  unsigned int operator()(const Container & s,unsigned int n)const __attribute__((noinline))
+	scattered_unsuccessful_lookup(unsigned int n)
+		: container(create<Container>(n)), amount(n)
+	{
+	}
+
+  unsigned int operator()()const __attribute__((noinline))
   {
     unsigned int                                res=0;
     std::uniform_int_distribution<unsigned int> dist;
     std::mt19937                                gen(76453);
-    auto                                        end_=s.end();
-    while(n--){
-      if(s.find(dist(gen))!=end_)++res;
+	auto                                        end_=container.end();
+	unsigned int n = amount;
+	while(n--)
+	{
+	  if(container.find(dist(gen))!=end_)++res;
     }
-    return res;
+	return amount - res;
   }
+
+private:
+  Container container;
+  unsigned int amount;
 };
 
-template<
-  template<typename> class Tester,
-  typename Container1,typename Container2,typename Container3, typename Container4, typename Container5>
-static void test(std::ostream & out,
-  const char* title,
-  const char* name1,const char* name2,const char* name3, const char* name4, const char * name5)
-{
-  //unsigned int n0=10000,n1=3000000,dn=500;
-	//unsigned int n0 = 10500, n1 = n0 + 1, dn = 20;
-	unsigned int n0=10000,n1=3000000,dn=500;
-  double       fdn=1.05;
-
-  out<<title<<":"<<std::endl;
-  out<<"amount;"<<name1<<";"<<name2<<";"<<name3<<";"<<name4<<";"<<name5<<std::endl;
-
-  for(unsigned int n=n0;n<=n1;n+=dn,dn=(unsigned int)(dn*fdn)){
-    double t;
-
-	out << n;
-	t=measure(boost::bind(
-      Tester<Container1>(),
-      boost::cref(create<Container1>(n)),n));
-	out<<";"<<(t/n)*10E6;
-
-    t=measure(boost::bind(
-      Tester<Container2>(),
-      boost::cref(create<Container2>(n)),n));
-	out<<";"<<(t/n)*10E6;
- 
-	t=measure(boost::bind(
-	  Tester<Container3>(),
-	  boost::cref(create<Container3>(n)),n));
-	out<<";"<<(t/n)*10E6;
-
-	t=measure(boost::bind(
-	  Tester<Container4>(),
-	  boost::cref(create<Container4>(n)),n));
-	out<<";"<<(t/n)*10E6;
-
-	t=measure(boost::bind(
-	  Tester<Container5>(),
-	  boost::cref(create<Container5>(n)),n));
-	out<<";"<<(t/n)*10E6<<std::endl;
-  }
-}
-
-#include <boost/unordered_map.hpp>
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/member.hpp>
-#include <unordered_map>
-#include "sherwood_map.hpp"
 #include <gtest/gtest.h>
 #include <fstream>
 
 TEST(profile, DISABLED_lookup)
 {
-  using namespace boost::multi_index;
-
-  /* some stdlibs provide the discussed but finally rejected std::identity */
-  using boost::multi_index::member;
-
-  typedef std::unordered_map<unsigned int, unsigned int>        container_t1;
-  typedef boost::unordered_map<unsigned int, unsigned int>      container_t2;
-  typedef boost::multi_index_container<
-	std::pair<unsigned int, unsigned int>,
-    indexed_by<
-	  hashed_unique<member<std::pair<unsigned int, unsigned int>, unsigned int, &std::pair<unsigned int, unsigned int>::first> >
-    >
-  >                                               container_t3;
-	typedef sherwood_map<unsigned int, unsigned int> container_t4;
-	typedef thin_sherwood_map<unsigned int, unsigned int> container_t5;
-
-	std::ofstream successful_out("successful_lookup");
-
-  test<
-    scattered_successful_lookup,
-    container_t1,
-    container_t2,
-	container_t3, container_t4, container_t5>
-  (successful_out,
-    "Scattered successful lookup",
-	"std::unordered_map",
-	"boost::unordered_map",
-	"multi_index::hashed_unique",
-			  "sherwood_map", "thin_sherwood_map"
-  );
-
-  std::ofstream unsuccessful_out("unsuccessful_lookup");
-
-  test<
-    scattered_unsuccessful_lookup,
-    container_t1,
-    container_t2,
-	container_t3, container_t4, container_t5>
-  (
-			  unsuccessful_out,
-    "Scattered unsuccessful lookup",
-	"std::unordered_map",
-	"boost::unordered_map",
-	"multi_index::hashed_unique", "sherwood_map", "thin_sherwood_map"
-  );
+	test<scattered_successful_lookup>("successful_lookup", "Scattered successful lookup");
+	test<scattered_unsuccessful_lookup>("unsuccessful_lookup", "Scattered unsuccessful lookup");
 }

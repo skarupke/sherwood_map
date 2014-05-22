@@ -301,6 +301,21 @@ struct thin_sherwood_map_tester
 };*/
 INSTANTIATE_TYPED_TEST_CASE_P(thin_sherwood_map, sherwood_test, thin_sherwood_map_tester);
 //INSTANTIATE_TYPED_TEST_CASE_P(fat_sherwood_map, sherwood_test, fat_sherwood_map_tester);
+
+TEST(sherwood_map, profil_erase_many)
+{
+	thin_sherwood_map<size_t, int> a;
+	const size_t num_elements = 100000;
+	a.reserve(num_elements);
+	for (size_t i = 0; i < num_elements; ++i)
+	{
+		a[i * a.bucket_count()] = i;
+	}
+	a.erase(a.begin(), std::next(a.begin(), num_elements - 1));
+	ASSERT_EQ(1, a.size());
+}
+
+
 }
 #endif
 

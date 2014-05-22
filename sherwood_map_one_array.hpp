@@ -182,39 +182,42 @@ private:
 
 		typedef detail::WrappingIterator<typename StorageType::iterator> WrapAroundIt;
 
-		iterator erase(iterator first, iterator last, size_t distance)
+		iterator erase(iterator first, iterator last)
 		{
 			if (first == last) return first;
-			if (last == _end)
+			size_t capacity = this->capacity();
+			do
 			{
-				last = _begin;
-				if (first == last)
+				iterator initial = initial_bucket(first->hash, capacity);
+				--initial->bucket_size;
+				WrapAroundIt wrap(first, begin(), end());
+				for (WrapAroundIt next = wrap;; wrap = next)
 				{
-					clear();
-					return _end;
-				}
-			}
-			for (WrapAroundIt first_wrap{ first, begin(), end() }, last_wrap{ last, begin(), end() };; ++first_wrap, ++last_wrap)
-			{
-				size_t last_distance = last_wrap.it->distance_to_initial_bucket;
-				if (last_distance < distance)
-				{
-					do
+					++next;
+					size_t hash = next.it->hash;
+					if (hash == detail::empty_hash || next.it->bucket_distance == 0)
 					{
-						if (first_wrap.it->hash != detail::empty_hash)
-						{
-							--distance;
-							first_wrap.it->clear();
-						}
-						++first_wrap;
+						break;
 					}
-					while (last_distance < distance);
-					if (last_distance == 0) return first;
+					wrap.it->entry = std::move(next.it->entry);
+					wrap.it->hash = hash;
+					if (next.it == last) --last;
 				}
-				last_wrap.it->distance_to_initial_bucket -= distance;
-				first_wrap.it->swap_non_empty(*last_wrap.it);
+				for (WrapAroundIt next_bucket = std::next(WrapAroundIt(initial, begin(), end())); next_bucket.it->bucket_distance > 0; ++next_bucket)
+				{
+					--next_bucket.it->bucket_distance;
+				}
+				wrap.it->clear();
+				while (first->hash == detail::empty_hash)
+				{
+					++first;
+					if (first == end()) return first;
+				}
 			}
+			while (first != end() && first != last);
+			return first;
 		}
+
 		iterator initial_bucket(size_type hash, size_t capacity)
 		{
 			return _begin + ptrdiff_t(hash % capacity);
@@ -223,52 +226,54 @@ private:
 		{
 			return _begin + ptrdiff_t(hash % capacity);
 		}
-		size_t distance_to_initial_bucket(iterator it, size_t hash, size_t capacity) const
-		{
-			const_iterator initial = _begin + ptrdiff_t(hash % capacity);
-			if (const_iterator(it) < initial) return (const_iterator(_end) - initial) + (it - _begin);
-			else return const_iterator(it) - initial;
-		}
-		enum FindResultType
-		{
-			FoundEmpty,
-			FoundEqual,
-			FoundNotEqual
-		};
-
-		struct FindResult
-		{
-			iterator it;
-			FindResultType result;
-			uint32_t distance;
-		};
-
 		template<typename First>
-		FindResult find_hash(size_type hash, const First & first)
+		inline iterator find_hash(size_type hash, const First & first)
 		{
 			if (_begin == _end)
 			{
-				return { _end, FoundEmpty, 0 };
+				return _end;
 			}
-			WrapAroundIt it{initial_bucket(hash, this->capacity()), begin(), end()};
-			size_t current_hash = it.it->hash;
-			if (current_hash == detail::empty_hash)
-				return { it.it, FoundEmpty, 0 };
-			for (uint32_t distance = 0;;)
+			iterator initial = initial_bucket(hash, this->capacity());
+			uint32_t bucket_size = initial->bucket_size;
+			if (bucket_size == 0)
+				return _end;
+			WrapAroundIt it{initial, _begin, _end};
+			for (std::advance(it, initial->bucket_distance); bucket_size--; ++it)
 			{
-				if (current_hash == hash && static_cast<KeyOrValueEquality &>(*this)(it.it->entry, first))
-					return { it.it, FoundEqual, distance };
-				++it;
-				++distance;
-				current_hash = it.it->hash;
-				if (it.it->distance_to_initial_bucket < distance)
-				{
-					if (current_hash == detail::empty_hash)
-						return { it.it, FoundEmpty, distance };
-					else
-						return { it.it, FoundNotEqual, distance };
-				}
+				if (static_cast<KeyOrValueEquality &>(*this)(it.it->entry, first))
+					return it.it;
 			}
+			return end();
+		}
+		enum EmplacePosResultType
+		{
+			FoundEqual,
+			FoundNotEqual
+		};
+		struct EmplacePosResult
+		{
+			iterator bucket_it;
+			iterator insert_it;
+			EmplacePosResultType result;
+		};
+
+
+		template<typename First>
+		EmplacePosResult find_emplace_pos(size_type hash, const First & first)
+		{
+			if (_begin == _end)
+			{
+				return { _end, _end, FoundNotEqual };
+			}
+			iterator initial = initial_bucket(hash, this->capacity());
+			WrapAroundIt it{initial, _begin, _end};
+			std::advance(it, initial->bucket_distance);
+			for (uint32_t i = initial->bucket_size; i > 0; --i, ++it)
+			{
+				if (it.it->hash == hash && static_cast<KeyOrValueEquality &>(*this)(it.it->entry, first))
+					return { initial, it.it, FoundEqual };
+			}
+			return { initial, it.it, FoundNotEqual };
 		}
 
 	private:
@@ -495,18 +500,14 @@ public:
 	iterator erase(const_iterator pos)
 	{
 		--_size;
-		auto non_const_pos = iterator_const_cast(pos).it;
-		auto next = non_const_pos;
-		++next;
-		return { entries.erase(non_const_pos, next, 1), entries.end(), AdvanceIterator{} };
+		auto erased = entries.erase(iterator_const_cast(pos).it, iterator_const_cast(std::next(pos)).it);
+		return { erased, entries.end(), AdvanceIterator{} };
 	}
 	iterator erase(const_iterator first, const_iterator last)
 	{
-		ptrdiff_t distance = std::distance(first, last);
-		_size -= distance;
-		auto non_const_first = iterator_const_cast(first).it;
-		auto non_const_last = iterator_const_cast(last).it;
-		return { entries.erase(non_const_first, non_const_last, distance), entries.end(), AdvanceIterator{} };
+		_size -= std::distance(first, last);
+		auto erased = entries.erase(iterator_const_cast(first).it, iterator_const_cast(last).it);
+		return { erased, entries.end(), AdvanceIterator{} };
 	}
 	size_type erase(const key_type & key)
 	{
@@ -530,9 +531,7 @@ public:
 	iterator find(const T & key)
 	{
 		size_t hash = static_cast<KeyOrValueHasher &>(entries)(key);
-		auto found = entries.find_hash(hash, key);
-		if (found.result == StorageType::FoundEqual) return { found.it, entries.end(), DoNotAdvanceIterator{} };
-		else return end();
+		return { entries.find_hash(hash, key), entries.end(), DoNotAdvanceIterator{} };
 	}
 	template<typename T>
 	const_iterator find(const T & key) const
@@ -671,27 +670,30 @@ private:
 	struct Entry
 	{
 		Entry()
-			: hash(detail::empty_hash), distance_to_initial_bucket(0)
+			: hash(detail::empty_hash), bucket_distance(0), bucket_size(0)
 		{
 		}
 		template<typename... Args>
-		void init(size_t hash, uint32_t distance, Args &&... args)
+		void init(size_t hash, uint32_t distance, uint32_t size, Args &&... args)
 		{
 			new (&entry) value_type(std::forward<Args>(args)...);
 			this->hash = hash;
-			this->distance_to_initial_bucket = distance;
+			bucket_distance = distance;
+			bucket_size = size;
 		}
-		void reinit(size_t hash, uint32_t distance, value_type && value)
+		void reinit(size_t hash, uint32_t distance, uint32_t size, value_type && value)
 		{
 			entry = std::move(value);
 			this->hash = hash;
-			this->distance_to_initial_bucket = distance;
+			this->bucket_distance = distance;
+			this->bucket_size = size;
 		}
 		void clear()
 		{
 			entry.~pair();
 			hash = detail::empty_hash;
-			distance_to_initial_bucket = 0;
+			bucket_distance = 0;
+			bucket_size = 0;
 		}
 
 		~Entry()
@@ -705,12 +707,12 @@ private:
 		{
 			using std::swap;
 			swap(hash, other.hash);
-			swap(distance_to_initial_bucket, other.distance_to_initial_bucket);
 			swap(entry, other.entry);
 		}
 
 		size_t hash;
-		uint32_t distance_to_initial_bucket;
+		uint32_t bucket_distance;
+		uint32_t bucket_size;
 		union
 		{
 			value_type entry;
@@ -719,45 +721,62 @@ private:
 	template<typename First, typename... Args>
 	std::pair<iterator, bool> emplace_with_hash(size_t hash, First && first, Args &&... args)
 	{
-		auto found = entries.find_hash(hash, first);
+		auto found = entries.find_emplace_pos(hash, first);
 		if (found.result == StorageType::FoundEqual)
 		{
-			return { { found.it, entries.end(), DoNotAdvanceIterator{} }, false };
+			return { { found.insert_it, entries.end(), DoNotAdvanceIterator{} }, false };
 		}
 		if (size() + 1 > _max_load_factor * entries.capacity())
 		{
 			grow();
-			found = entries.find_hash(hash, first);
+			found = entries.find_emplace_pos(hash, first);
 		}
-		switch(found.result)
+		typedef typename StorageType::WrapAroundIt WrapIt;
+		if (found.insert_it->hash == detail::empty_hash)
 		{
-		case StorageType::FoundEqual:
-			throw detail::invalid_code_in_emplace();
-		case StorageType::FoundEmpty:
-			found.it->init(hash, found.distance, std::forward<First>(first), std::forward<Args>(args)...);
-			++_size;
-			return { { found.it, entries.end(), DoNotAdvanceIterator{} }, true };
-		case StorageType::FoundNotEqual:
-			// create the object to insert early so that if it throws, nothing bad has happened
-			// after this I assume noexcept moves
-			value_type to_insert(std::forward<First>(first), std::forward<Args>(args)...);
-			Entry & current = *found.it;
-			++current.distance_to_initial_bucket;
-			typename StorageType::WrapAroundIt next{found.it, entries.begin(), entries.end()};
-			for (++next; next.it->hash != detail::empty_hash; ++next)
+			if (found.insert_it == found.bucket_it)
 			{
-				if (next.it->distance_to_initial_bucket < current.distance_to_initial_bucket)
-				{
-					current.swap_non_empty(*next.it);
-				}
-				++current.distance_to_initial_bucket;
+				found.insert_it->init(hash, 0, 1, std::forward<First>(first), std::forward<Args>(args)...);
 			}
-			next.it->init(current.hash, current.distance_to_initial_bucket, std::move(current.entry));
-			current.reinit(hash, found.distance, std::move(to_insert));
+			else
+			{
+				++found.bucket_it->bucket_size;
+				for (WrapIt bucket_wrap = ++WrapIt(found.bucket_it, entries.begin(), entries.end()); bucket_wrap.it != found.insert_it; ++bucket_wrap)
+				{
+					++bucket_wrap.it->bucket_distance;
+				}
+				found.insert_it->init(hash, 1, 0, std::forward<First>(first), std::forward<Args>(args)...);
+			}
 			++_size;
-			return { { found.it, entries.end(), DoNotAdvanceIterator{} }, true };
+			return { { found.insert_it, entries.end(), DoNotAdvanceIterator{} }, true };
 		}
-		throw detail::unhandled_case();
+		value_type new_value(std::forward<First>(first), std::forward<Args>(args)...);
+		auto insert_wrap = WrapIt(found.insert_it, entries.begin(), entries.end());
+		value_type & current_value = found.insert_it->entry;
+		size_t & current_hash = found.insert_it->hash;
+		for (auto bucket_wrap = std::next(WrapIt(found.bucket_it, entries.begin(), entries.end())); ; ++bucket_wrap)
+		{
+			++bucket_wrap.it->bucket_distance;
+			uint32_t bucket_size = bucket_wrap.it->bucket_size;
+			if (!bucket_size) continue;
+			std::advance(insert_wrap, bucket_size);
+			if (insert_wrap.it->hash == detail::empty_hash)
+			{
+				for (++bucket_wrap; bucket_wrap != insert_wrap; ++bucket_wrap)
+				{
+					++bucket_wrap.it->bucket_distance;
+				}
+				++_size;
+				insert_wrap.it->init(current_hash, 1, 0, std::move(current_value));
+				break;
+			}
+			std::swap(current_value, insert_wrap.it->entry);
+			std::swap(current_hash, insert_wrap.it->hash);
+		}
+		++found.bucket_it->bucket_size;
+		current_value = std::move(new_value);
+		current_hash = hash;
+		return { { found.insert_it, entries.end(), DoNotAdvanceIterator{} }, true };
 	}
 
 	StorageType entries;
