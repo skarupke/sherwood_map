@@ -84,10 +84,10 @@ HEADERS += \
     boost_test/objects/test.hpp \
     boost_test/unordered/compile_tests.hpp \
     sherwood_map.hpp \
-    sherwood_map_one_array.hpp \
     finished/sherwood_map.hpp \
     sherwood_test.hpp \
-    profiling/profile_shared.h
+    profiling/profile_shared.h \
+    sherwood_map_two_array.hpp
 
 OTHER_FILES +=
 

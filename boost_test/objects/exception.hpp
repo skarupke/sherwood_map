@@ -547,6 +547,10 @@ namespace exception
 			test::detail::tracker().track_construct((void*) p, sizeof(T), tag_);
         }
 #endif
+		void construct(T* p, T && to_move) {
+			new(p) T(boost::move(to_move));
+			test::detail::tracker().track_construct((void*) p, sizeof(T), tag_);
+		}
 
         void destroy(T* p) {
 			test::detail::tracker().track_destroy((void*) p, sizeof(T), tag_);

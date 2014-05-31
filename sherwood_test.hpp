@@ -418,6 +418,26 @@ TYPED_TEST_P(sherwood_test, crowded_end)
 	a.erase(4 * count - 4);
 	ASSERT_EQ((map_type{ { 2 * count - 3, 6 }, { 3 * count - 3, 7 }, { 4 * count - 3, 8 }, { 5 * count - 3, 9, }, { 6 * count - 3, 10 }, { 7 * count - 3, 11 } }), a);
 }
+/*TYPED_TEST_P(sherwood_test, insert_another_test)
+{
+	typedef typename TypeParam::template map<int, int> map_type;
+	map_type map;
+	std::initializer_list<std::pair<int, int> > values =
+	{
+		{ 1402653483 + 1287338067, 1 },
+		{ 139681623 + 2139129078, 2 },
+		{ 1015058721 + 1794934114, 3 },
+		{ 123719013 + 24940015, 4 },
+		{ 629625263 + 1739890741, 5 }
+	};
+	map.insert(values.begin(), values.end());
+	for (auto it = values.begin(); it != values.end(); ++it)
+	{
+		ASSERT_EQ(it->second, map[it->first]);
+	}
+	ASSERT_EQ(values.size(), map.size());
+}*/
+
 TYPED_TEST_P(sherwood_test, swap)
 {
 	typedef typename TypeParam::template map<int, int> map_type;

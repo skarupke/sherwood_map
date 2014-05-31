@@ -132,11 +132,11 @@ struct name_for<sherwood_map<K, V, H, E, A> >
 	}
 };
 template<typename K, typename V, typename H, typename E, typename A>
-struct name_for<thin_sherwood_map<K, V, H, E, A> >
+struct name_for<fat_sherwood_map<K, V, H, E, A> >
 {
 	const char * operator()() const
 	{
-		return "thin_sherwood_map";
+		return "fat_sherwood_map";
 	}
 };
 

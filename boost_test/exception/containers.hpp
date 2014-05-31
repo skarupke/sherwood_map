@@ -26,7 +26,7 @@ typedef thin_sherwood_map<
 	test::exception::hash,
 	test::exception::equal_to,
 	test::exception::allocator2<test::exception::object> > test_map;
-typedef thin_sherwood_map<
+typedef fat_sherwood_map<
 	test::exception::object,
 	test::exception::object,
 	test::exception::hash,

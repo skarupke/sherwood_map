@@ -289,23 +289,23 @@ TEST(sherwood_map, performance)
 	}
 }
 #endif
-struct thin_sherwood_map_tester
+/*struct thin_sherwood_map_tester
 {
 	template<typename K, typename V, typename H = std::hash<K>, typename E = std::equal_to<K>, typename A = std::allocator<std::pair<K, V> > >
 	using map = thin_sherwood_map<K, V, H, E, A>;
-};
-/*struct fat_sherwood_map_tester
+};*/
+struct fat_sherwood_map_tester
 {
 	template<typename K, typename V, typename H = std::hash<K>, typename E = std::equal_to<K>, typename A = std::allocator<std::pair<K, V> > >
 	using map = fat_sherwood_map<K, V, H, E, A>;
-};*/
-INSTANTIATE_TYPED_TEST_CASE_P(thin_sherwood_map, sherwood_test, thin_sherwood_map_tester);
-//INSTANTIATE_TYPED_TEST_CASE_P(fat_sherwood_map, sherwood_test, fat_sherwood_map_tester);
+};
+//INSTANTIATE_TYPED_TEST_CASE_P(thin_sherwood_map, sherwood_test, thin_sherwood_map_tester);
+INSTANTIATE_TYPED_TEST_CASE_P(fat_sherwood_map, sherwood_test, fat_sherwood_map_tester);
 
 TEST(sherwood_map, profil_erase_many)
 {
 	thin_sherwood_map<size_t, int> a;
-	const size_t num_elements = 100000;
+	const size_t num_elements = 10000;
 	a.reserve(num_elements);
 	for (size_t i = 0; i < num_elements; ++i)
 	{
